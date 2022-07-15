@@ -1,20 +1,20 @@
-# KubeFow distribution for Oracle Kubernetes Engine (OKE)
+# KubeFlow distribution for Oracle Kubernetes Engine (OKE)
 
 ## Setup
 
-- Fetch the upstream KubeFlow manifests
+- Fetch the upstream KubeFlow manifests:
 
     ```bash
     ./get_upstream.sh
     ```
 
-- Define the admin user and password (overriding default user@example.com)
+- Define the admin user and password (overriding default user@example.com):
 
     ```bash
     ./set_admin_pwd.sh
     ```
 
-- Deploy the minimal config
+- Deploy the minimal config:
 
     ```bash
     while ! kustomize build deployment/base | kubectl apply -f - ; do : done;
