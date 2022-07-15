@@ -8,7 +8,7 @@ bases:
 configMapGenerator:
 - name: dex-idcs
   files:
-    - config.yaml
+    - config.yaml=idcs-config.yaml
 generatorOptions:
   disableNameSuffixHash: true
   

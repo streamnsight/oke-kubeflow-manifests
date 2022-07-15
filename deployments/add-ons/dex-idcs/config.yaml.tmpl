@@ -9,16 +9,16 @@ connectors:
   id: idcs
   name: idcs
   config:
-    issuer: https://xxxxxx.identity.oraclecloud.com
+    issuer: ${IDCS_URL}
 
     # Connector config values starting with a "$" will read from the environment.
-    clientID: xxxx
-    clientSecret: xxxxx
+    clientID: ${IDCS_CLIENT_ID}
+    clientSecret: ${IDCS_CLIENT_SECRET}
 
     # Dex's issuer URL + "/callback"
     redirectURI: http://127.0.0.1:5556/dex/callback
     hostedDomains:
-      - https://xxxxxx.identity.oraclecloud.com
+      - ${IDCS_URL}
 
 storage:
   type: kubernetes
