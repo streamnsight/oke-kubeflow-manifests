@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- kubeflow-gw.Certificate.yaml
+- letsencrypt.ClusterIssuer.yaml
+
+bases:
+- ../../../../../../upstream/common/istio-1-11/kubeflow-istio-resources/base
+- ../../../../../../upstream/common/oidc-authservice/base
+
+patchesStrategicMerge:
+- patches/kubeflow.Gateway.yaml
+
+patches:
+- patch: |-
+    - op: add
+      path: "/spec/template/spec/containers/0/envFrom/-"
+      value: 
+        configMapRef:
+          name: oidc-authservice-parameters-letsencrypt
+  target:
+    kind: StatefulSet
+    namespace: istio-system
+    name: authservice
+
+configMapGenerator:
+- name: oidc-authservice-parameters-letsencrypt
+  namespace: istio-system
+  envs:
+  - authservice-config-override.env
+
+generatorOptions:
+  disableNameSuffixHash: true
