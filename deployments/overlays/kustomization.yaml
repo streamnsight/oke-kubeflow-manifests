@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../base
+
+components:
+
+# !!! components need to be applied in the right order: 
+# letsencrypt creaets a ssl cert so https is not required
+# idcs requires that SSL has been setup in order to be secure, 
+# so it needs to be applied after the https or letsencrypt
+
+# - ../add-ons/https
+- ../add-ons/letsencrypt
+- ../add-ons/idcs
