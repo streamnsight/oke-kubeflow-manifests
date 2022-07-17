@@ -1,2 +1,3 @@
 upstream/**/*
 idcs-config.yaml
+kubeflow-gw.Certificate.yaml
