@@ -46,3 +46,18 @@ You'll be prompted for your domain name, and the domain admin email (required fo
 
 The overlay creates a `ClusterIssuer` for Lets Encrypt with `cert-manager`, a `Certificate` for the domain, and modifies the `authservice` configuration to white-list the `/.well-known/` path providing access to the Let's Encrypt token verification.
 
+### IDCS Config
+
+This config still uses Dex.
+
+TODO: bypass Dex altogether?
+
+- Create an App in IDCS (Confidential Application)
+- Give it the `Client Credentials` and `Authorization Code` grant types.
+- Provide a Redirect URL. Using Dex, it will be `https://<domain_name>/dex/callback`
+- Take note of the Client ID and Client Secret
+
+- Follow these instructions below to edit the issuer URL in IDCS left-side menu -> Security -> OAuth -> Issuer: Enter the instance url of the type: `https://idcs-<xxx>.identity.oraclecloud.com/`
+
+https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-settings.html
+

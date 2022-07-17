@@ -1,11 +1,18 @@
 #!/bin/bash
 
-read -p "Domain Name: " DOMAIN_NAME
-read -p "Domain Name Admin Email: " DOMAIN_ADMIN_EMAIL
+
+if [[ -z "${DOMAIN_NAME}" ]];
+then
+    read -p "Domain Name: " DOMAIN_NAME
+fi;
+
+if [[ -z "${DOMAIN_ADMIN_EMAIL}" ]];
+then
+    read -p "Domain Name Admin Email: " DOMAIN_ADMIN_EMAIL
+fi;
 
 export DOMAIN_NAME
 export DOMAIN_ADMIN_EMAIL
 
-kustomize build deployments/add-ons/letsencrypt | envsubst | kubectl apply -f -
-kubectl delete pod authservice-0 -n istio-system
-
+eval "echo \"$(cat ./oci/common/istio-1-11/kubeflow-istio-resources/overlays/letsencrypt/kubeflow-gw.Certificate.yaml.tmpl)\"" \
+> ./oci/common/istio-1-11/kubeflow-istio-resources/overlays/letsencrypt/kubeflow-gw.Certificate.yaml

@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dex
+spec:
+  template:
+    spec:
+      volumes:
+      - name: config
+        configMap:
+          name: dex-idcs
+          items:
+          - key: config.yaml
+            path: config.yaml

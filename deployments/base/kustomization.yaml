@@ -8,7 +8,7 @@ resources:
 # Istio
 - ../../upstream/common/istio-1-11/istio-crds/base
 - ../../upstream/common/istio-1-11/istio-namespace/base
-- ../../oci/common/istio-1-11/istio-install/overlays/oci-load-balancer
+- ../../upstream/common/istio-1-11/istio-install/base
 
 # OIDC Authservice
 - ../../upstream/common/oidc-authservice/base
@@ -23,7 +23,7 @@ resources:
 # Kubeflow Roles
 - ../../upstream/common/kubeflow-roles/base
 # Kubeflow Istio Resources
-- ../../oci/common/istio-1-11/kubeflow-istio-resources/overlays/https
+- ../../upstream/common/istio-1-11/kubeflow-istio-resources/base
 
 
 # Kubeflow Pipelines
@@ -56,3 +56,6 @@ resources:
 # KServe
 - ../../upstream/contrib/kserve/kserve
 - ../../upstream/contrib/kserve/models-web-app/overlays/kubeflow
+
+components:
+- ../../oci/common/istio-1-11/istio-install/overlays/oci-load-balancer
