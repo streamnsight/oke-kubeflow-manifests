@@ -66,3 +66,6 @@ https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-setti
     ```bash
     ./setup_idcs.sh
     ```
+
+To troubelshoot issues, check the logs of the `authservice-0` pod in namespace `auth` as well as the dex pod in namespace `istio-system`
+
