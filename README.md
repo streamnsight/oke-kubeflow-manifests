@@ -61,3 +61,8 @@ TODO: bypass Dex altogether?
 
 https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-settings.html
 
+- Run the following to generate the config files:
+
+    ```bash
+    ./setup_idcs.sh
+    ```
