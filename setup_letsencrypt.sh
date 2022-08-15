@@ -16,3 +16,6 @@ export DOMAIN_ADMIN_EMAIL
 
 eval "echo \"$(cat ./oci/common/istio-1-11/kubeflow-istio-resources/overlays/letsencrypt/kubeflow-gw.Certificate.yaml.tmpl)\"" \
 > ./oci/common/istio-1-11/kubeflow-istio-resources/overlays/letsencrypt/kubeflow-gw.Certificate.yaml
+
+eval "echo \"$(cat ./oci/common/istio-1-11/kubeflow-istio-resources/overlays/letsencrypt/letsencrypt.ClusterIssuer.yaml.tmpl)\"" \
+> ./oci/common/istio-1-11/kubeflow-istio-resources/overlays/letsencrypt/letsencrypt.ClusterIssuer.yaml
