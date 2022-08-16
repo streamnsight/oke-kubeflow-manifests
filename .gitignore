@@ -1,3 +1,5 @@
 upstream/**/*
 idcs-config.yaml
 kubeflow-gw.Certificate.yaml
+letsencrypt.ClusterIssuer.yaml
+params.env

@@ -59,6 +59,8 @@ TODO: bypass Dex altogether?
 
 - Follow these instructions below to edit the issuer URL in IDCS left-side menu -> Security -> OAuth -> Issuer: Enter the instance url of the type: `https://idcs-<xxx>.identity.oraclecloud.com/`
 
+- In IDCS left-side menu -> Settings -> Default Settings, make sure the Access Signing Certificate option is turned ON.
+
 https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-settings.html
 
 - Run the following to generate the config files:
