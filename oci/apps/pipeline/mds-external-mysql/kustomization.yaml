@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# configMapGenerator:
+# - name: pipeline-install-config
+#   namespace: kubeflow
+#   envs: 
+#   - params.env
+#   behavior: merge
+
+patchesStrategicMerge:
+# - patches/disable-default-secret.yaml
+- patches/disable-local-mysql.yaml
+- mysql.Service.yaml
+
+secretGenerator:
+- name: mysql-secret
+  behavior: replace
+  envs:
+  - mysql.env
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+# resources:
+# - mysql.Service.yaml
+
+# Identifier for application manager to apply ownerReference.
+# The ownerReference ensures the resources get garbage collected
+# # when application is deleted.
+# commonLabels:
+#   application-crd-id: kubeflow-pipelines

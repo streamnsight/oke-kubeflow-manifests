@@ -14,3 +14,4 @@ components:
 # - ../add-ons/https
 - ../add-ons/letsencrypt
 - ../add-ons/idcs
+- ../add-ons/external-mysql
