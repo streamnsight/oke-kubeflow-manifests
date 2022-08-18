@@ -8,7 +8,8 @@ resources:
 # Istio
 - ../../upstream/common/istio-1-11/istio-crds/base
 - ../../upstream/common/istio-1-11/istio-namespace/base
-- ../../upstream/common/istio-1-11/istio-install/base
+- ../../oci/common/istio-1-11/istio-install/overlays/sidecar-injector
+# - ../../upstream/common/istio-1-11/istio-install/base
 
 # OIDC Authservice
 - ../../upstream/common/oidc-authservice/base

@@ -3,4 +3,3 @@ kind: Component
 
 patchesStrategicMerge:
 - patches/istio-ingressgateway.Service.yaml
-# - patches/istio-sidecar-injector.MutatingWebhookConfiguration.yaml
