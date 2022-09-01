@@ -5,3 +5,4 @@ letsencrypt.ClusterIssuer.yaml
 params.env
 config
 minio.env
+mysql.env
