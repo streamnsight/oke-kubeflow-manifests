@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: katib-db-manager
+  namespace: kubeflow
+spec:
+  template:
+    spec:
+      # Init container creates the katib DB that is not created by default
+      initContainers:
+      - name: init-db
+        image: mysql:8.0.26
+        env:
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+        command:
+        - "/bin/bash"
+        - "-c"
+        - "mysql -u$(DB_USER) -p$(DB_PASSWORD) -h mysql -e 'create database if not exists katib; '"
+      containers:
+        - name: katib-db-manager
+          env:
+          - name: DB_NAME
+            value: mysql
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: mysql-secret
+                key: username
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-secret
+                key: password
+          - name: KATIB_MYSQL_DB_HOST
+            value: mysql

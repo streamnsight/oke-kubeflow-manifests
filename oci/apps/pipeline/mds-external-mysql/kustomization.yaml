@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# configMapGenerator:
+# - name: pipeline-install-config
+#   namespace: kubeflow
+#   envs: 
+#   - params.env
+#   behavior: merge
+
+patchesStrategicMerge:
+# - patches/disable-default-secret.yaml
+- patches/disable-local-mysql.yaml
+- mysql.Service.yaml
+
+patches:
+- patch: |-
+    - op: remove
+      path: "/spec/selector"
+  target:
+    kind: Service
+    namespace: kubeflow
+    name: mysql
+- patch: |-
+    - op: remove
+      path: "/spec/ports"
+  target:
+    kind: Service
+    namespace: kubeflow
+    name: mysql
+
+secretGenerator:
+- name: mysql-secret
+  behavior: replace
+  envs:
+  - mysql.env
+
+generatorOptions:
+  disableNameSuffixHash: true

@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+spec:
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    spec:
+      containers:
+      - args:
+        - gateway
+        - s3
+        - $(ENDPOINT)
+        envFrom:
+        - secretRef:
+            name: minio-gateway
+        name: minio

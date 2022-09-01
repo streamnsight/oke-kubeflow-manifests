@@ -1,0 +1,22 @@
+{
+containerRuntimeExecutor: pns,
+artifactRepository:
+{
+    s3: {
+        bucket: ${BUCKET},
+        keyPrefix: artifacts,
+        endpoint: ${OCI_OS_URL},
+        region: ${OCI_REGION},
+        insecure: false,
+        accessKeySecret: {
+            name: mlpipeline-minio-artifact,
+            key: accesskey
+        },
+        secretKeySecret: {
+            name: mlpipeline-minio-artifact,
+            key: secretkey
+        }
+    },
+    archiveLogs: true
+}
+}

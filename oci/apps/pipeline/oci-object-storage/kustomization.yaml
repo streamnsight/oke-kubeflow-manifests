@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+configMapGenerator:
+- name: pipeline-install-config
+  envs: 
+  - params.env
+  behavior: merge
+- name: workflow-controller-configmap
+  behavior: replace
+  files:
+  - config
+- name: ml-pipeline-ui-configmap
+  behavior: replace
+  files:
+  - viewer-pod-template.json
+secretGenerator:
+- name: mlpipeline-minio-artifact
+  behavior: replace
+  envs:
+  - minio.env
+generatorOptions:
+  disableNameSuffixHash: true
+
+patchesStrategicMerge:
+- patches/ml-pipeline-ui.Deployment.yaml
+- patches/ml-pipeline.Deployment.yaml

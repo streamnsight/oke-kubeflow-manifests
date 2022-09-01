@@ -71,3 +71,19 @@ https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-setti
 
 To troubelshoot issues, check the logs of the `authservice-0` pod in namespace `auth` as well as the dex pod in namespace `istio-system`
 
+### MySQL external Database
+
+To configure a MySQL as a Service instance for KubeFlow:
+
+- Create a MySQL DBSystem instance with the OCI Console, and place it in a private subnet reachable by the Kubernetes Cluster nodes (either in the same subnet, or a different subnet in the same VCN). Add Security lists to configure access from the pods (that use a different CIDR range) to the CIDR of the MySQL instance, for TCP port 3306.
+
+- Create a `kubeflow` user.
+  This is important as some of the KubeFlow components require the password to be created with the `mysql_native_password` plugin, which is not the default on the MySQL service.
+
+  From a MySQL client, run:
+  ```
+  mysql -u <system_user> -p <system_password> -h <db_hostname> -e "create user if not exists kubeflow@'%' identified with mysql_native_password by '<kubeflow_user_password>' default role administrator;"
+  ```
+- Enter the `kubeflow_user_password` you chose in the `kubeflow.env` file.
+
+- Run the script `setup_mysql.sh`
