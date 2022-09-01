@@ -6,3 +6,4 @@ params.env
 config
 minio.env
 mysql.env
+kubeflow.env
