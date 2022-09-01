@@ -2,11 +2,17 @@
 
 ## Setup
 
+!!! First, select the latest release branch for the KubeFlow release you wish to use.
+
+This release is for KubeFlow 1.5.0
+
 - Fetch the upstream KubeFlow manifests:
 
     ```bash
     ./get_upstream.sh
     ```
+
+- Create a `kubeflow.env` file using the `kubeflow.env.tmpl` template. See each add-on option for the required details
 
 - Define the admin user and password (overriding default user@example.com):
 
@@ -14,7 +20,11 @@
     ./set_admin_pwd.sh
     ```
 
-- Deploy the minimal config:
+## Deploy the minimal config
+
+- If you do not intend on using the other add-ons, deploy the minimal config as follow:
+
+  !! If you do want to use the add-ons, it is recommended to configure everything at once, or you will need to roll-out restart all the deployments.
 
     ```bash
     while ! kustomize build deployment/base | kubectl apply -f - ; do : done;
@@ -28,7 +38,7 @@
     open $(kubectl get service istio-ingressgateway -n istio-system | tail -n -1 | awk '{print "https://"$4}')
     ```
 
-## Add-ons
+## Deploy with Add-ons
 
 ### Let's Encrypt SSL Certificate generation
 
@@ -48,10 +58,6 @@ The overlay creates a `ClusterIssuer` for Lets Encrypt with `cert-manager`, a `C
 
 ### IDCS Config
 
-This config still uses Dex.
-
-TODO: bypass Dex altogether?
-
 - Create an App in IDCS (Confidential Application)
 - Give it the `Client Credentials` and `Authorization Code` grant types.
 - Provide a Redirect URL. Using Dex, it will be `https://<domain_name>/dex/callback`
@@ -69,7 +75,7 @@ https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-setti
     ./setup_idcs.sh
     ```
 
-To troubelshoot issues, check the logs of the `authservice-0` pod in namespace `auth` as well as the dex pod in namespace `istio-system`
+To troubleshoot issues, check the logs of the `authservice-0` pod in namespace `auth` as well as the dex pod in namespace `istio-system`
 
 ### MySQL external Database
 
@@ -87,3 +93,36 @@ To configure a MySQL as a Service instance for KubeFlow:
 - Enter the `kubeflow_user_password` you chose in the `kubeflow.env` file.
 
 - Run the script `setup_mysql.sh`
+
+### Object Storage Backend
+
+To use OCI Object Storage as storage for Pipeline and Pipeline Artifacts:
+
+- Gather the `namespace` name of your tenancy, the `region` code (for example us-ashburn-1) from the tenancy details.
+
+- Create a bucket at the root of the tenancy (or in the compartment defined as the root for the S3 Compatibility API, which defaults to the root of the tenancy)
+
+- Create a Customer Secret Key under your user (or a user created for this purpose), which will provide you with an Access Key and a Secret Access Key. Take note of these credentials.
+
+- Run the `setup_object_storage.sh` script to generate the minio.env and params.env files
+
+### Deploy
+
+In the `deployments/overlays/kustomization.yaml` file, comment out the add-ons you did not configure.
+
+```yaml
+# - ../add-ons/https
+- ../add-ons/letsencrypt
+- ../add-ons/idcs
+- ../add-ons/external-mysql
+- ../add-ons/oci-object-storage
+```
+
+Note that you need the `https` adds OR `letsencrypt` add-on to enable the `idcs` add-on. Without `letsencrypt` use the Load Balancer Public IP address in place of the domain name. 
+
+To deploy, run the comand:
+
+    ```bash
+    while ! kustomize build deployment/base | kubectl apply -f - ; do : done;
+    ```
+
