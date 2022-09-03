@@ -4,7 +4,7 @@ kind: Component
 patches:
   - target:
       group: admissionregistration.k8s.io
-      version: v1beta1
+      version: v1
       kind: MutatingWebhookConfiguration
       name: admission-webhook-mutating-webhook-configuration
     # Workaround for manifests bug https://github.com/kubeflow/manifests/issues/1894
