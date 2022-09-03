@@ -59,4 +59,4 @@ resources:
 - ../../upstream/contrib/kserve/models-web-app/overlays/kubeflow
 
 components:
-- ../../oci/common/istio-1-11/istio-install/overlays/oci-load-balancer
+- ../../oci/common/istio-1-14/istio-install/overlays/oci-load-balancer
