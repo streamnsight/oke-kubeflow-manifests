@@ -86,10 +86,30 @@ To configure a MySQL as a Service instance for KubeFlow:
 - Create a `kubeflow` user.
   This is important as some of the KubeFlow components require the password to be created with the `mysql_native_password` plugin, which is not the default on the MySQL service.
 
-  From a MySQL client, run:
+  You need to run the command below within the cluster, to get access to the MySQL instance there. For this, use the mysql.Pod.yaml to spin up a MySQL client Pod:
+
+  ```bash
+  kubectl apply -f mysql.Pod.yaml
   ```
-  mysql -u <system_user> -p <system_password> -h <db_hostname> -e "create user if not exists kubeflow@'%' identified with mysql_native_password by '<kubeflow_user_password>' default role administrator;"
+
+  Then get inside the pod with:
+
+  ```bash
+  kubectl exec -it mysql-temp -- /bin/bash
   ```
+
+  Inside the Pod, run the command:
+
+  ```
+  mysql -u <system_user> -p -h <db_hostname> -e "create user if not exists kubeflow@'%' identified with mysql_native_password by '<kubeflow_user_password>' default role administrator;"
+  ```
+  At the prompt, enter the root/system user password your provided at creation of the DB system.
+
+  You can then delete the Pod
+  ```bash
+  kubectl delete -f mysql.Pod.yaml
+  ```
+
 - Enter the `kubeflow_user_password` you chose in the `kubeflow.env` file.
 
 - Run the script `setup_mysql.sh`

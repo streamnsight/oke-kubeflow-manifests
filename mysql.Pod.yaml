@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-temp
+spec:
+  containers:
+  - name: mysql-temp
+    image: mysql:8.0.26
+    command:
+    - sleep
+    - "3600"
