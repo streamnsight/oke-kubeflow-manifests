@@ -177,3 +177,14 @@ To deploy, run the comand:
     while ! kustomize build deployment/overlays | kubectl apply -f - ; do : done;
     ```
 
+Note:
+
+If deployment fails due to a wrong configuration, update the `kubeflow.env`, source it, and re-run the related script(s). Then re-run the kustomize build and kubectl apply commands
+
+After this, you may still need to restart the deployments with 
+
+```bash
+kubectl rollout restart deployments -n kubeflow
+# for IDCS config change, also run
+kubectl rollout restart deployments -n auth
+```
