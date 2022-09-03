@@ -143,6 +143,6 @@ Note that you need the `https` adds OR `letsencrypt` add-on to enable the `idcs`
 To deploy, run the comand:
 
     ```bash
-    while ! kustomize build deployment/base | kubectl apply -f - ; do : done;
+    while ! kustomize build deployment/overlays | kubectl apply -f - ; do : done;
     ```
 
