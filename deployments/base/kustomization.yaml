@@ -60,3 +60,6 @@ resources:
 
 components:
 - ../../oci/common/istio-1-14/istio-install/overlays/oci-load-balancer
+
+# patch to fix admission webhook service name 
+- ../../oci/apps/admission-webhook/cert-manager
