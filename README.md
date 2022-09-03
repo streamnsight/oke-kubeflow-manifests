@@ -56,6 +56,16 @@ You'll be prompted for your domain name, and the domain admin email (required fo
 
 The overlay creates a `ClusterIssuer` for Lets Encrypt with `cert-manager`, a `Certificate` for the domain, and modifies the `authservice` configuration to white-list the `/.well-known/` path providing access to the Let's Encrypt token verification.
 
+Note: when you use LetsEncrypt, you run into a situation where the domain name needs to have the Load Balancer IP address, before the Load Balancer is actually created. You need to run the deployment, then get the IP address of the load balancer with:
+
+```bash
+kubectl get service istio-ingressgateway -n istio-system
+```
+
+Add this IP as a A record on your Domain Name with the IP address.
+
+LetsEncrypt will retry validating the domain name for a while. Once the Domain name is resolved by DNS, LetsEncrypt will create the certificate. This can take some time.
+
 ### IDCS Config
 
 - Create an App in IDCS (Confidential Application)
@@ -76,6 +86,27 @@ https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-setti
     ```
 
 To troubleshoot issues, check the logs of the `authservice-0` pod in namespace `auth` as well as the dex pod in namespace `istio-system`
+
+
+#### Users
+
+If you deploy IDCS, users can sign in automatically with Single Sign-On, however their user will not exist in KubeFlow and they will not be able to do anything.
+
+For each IDCS authorized user, you need to create a user profile like the following:
+
+```yaml
+apiVersion: kubeflow.org/v1beta1
+kind: Profile
+metadata:
+  name: <user namespace identifier>
+spec:
+  owner:
+    kind: User
+    name: <IDCS user email>
+```
+
+User namespace identifier can be anything. The kubeflow default naming convention is to use `kubeflow-`<email with . and @ replaced by -)>
+
 
 ### MySQL external Database
 
