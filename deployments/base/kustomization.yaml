@@ -63,3 +63,6 @@ components:
 
 # patch to fix admission webhook service name 
 - ../../oci/apps/admission-webhook/cert-manager
+
+# patch to fix katib trial templates / remove istio sidecar injector
+- ../../oci/apps/katib/trial-experiment-fix
