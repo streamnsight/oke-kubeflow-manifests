@@ -60,3 +60,6 @@ resources:
 
 components:
 - ../../oci/common/istio-1-11/istio-install/overlays/oci-load-balancer
+
+# patch to fix katib trial templates / remove istio sidecar injector
+- ../../oci/apps/katib/trial-experiment-fix
