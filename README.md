@@ -4,7 +4,7 @@
 
 !!! First, select the latest release branch for the KubeFlow release you wish to use.
 
-This release is for KubeFlow 1.6.0-rc.3
+This release is for KubeFlow v1.6.0
 
 - Fetch the upstream KubeFlow manifests:
 
