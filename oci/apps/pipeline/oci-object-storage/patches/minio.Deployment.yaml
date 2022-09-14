@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+spec:
+  template:
+    spec:
+      containers:
+      - name: minio
+        args:
+        - gateway
+        - s3
+        - https://$(MINIO_HOST)
+        env:
+        - name: MINIO_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: minioServiceHost
+        - name: MINIO_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: minioServiceRegion
