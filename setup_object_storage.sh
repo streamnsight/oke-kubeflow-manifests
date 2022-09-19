@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. kubeflow.env
+. ./kubeflow.env
 
 # update params.env
 

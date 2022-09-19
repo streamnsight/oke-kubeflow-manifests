@@ -150,12 +150,15 @@ To configure a MySQL as a Service instance for KubeFlow:
 To use OCI Object Storage as storage for Pipeline and Pipeline Artifacts:
 
 - Gather the `namespace` name of your tenancy, the `region` code (for example us-ashburn-1) from the tenancy details.
+  Note: this ONLY works with the home region at this point, because Minio Gateway does not support other regions for S3 compatible gateways.
 
 - Create a bucket at the root of the tenancy (or in the compartment defined as the root for the S3 Compatibility API, which defaults to the root of the tenancy)
 
 - Create a Customer Secret Key under your user (or a user created for this purpose), which will provide you with an Access Key and a Secret Access Key. Take note of these credentials.
 
-- Run the `setup_object_storage.sh` script to generate the minio.env and params.env files
+- Edit the kubeflow.env file with the details gathered.
+
+- Run the `setup_object_storage.sh` script to generate the minio.env, config and params.env files
 
 ### Deploy
 
@@ -181,10 +184,18 @@ Note:
 
 If deployment fails due to a wrong configuration, update the `kubeflow.env`, source it, and re-run the related script(s). Then re-run the kustomize build and kubectl apply commands
 
-After this, you may still need to restart the deployments with 
+After this, you may still need to restart the deployments with:
 
 ```bash
 kubectl rollout restart deployments -n kubeflow
 # for IDCS config change, also run
 kubectl rollout restart deployments -n auth
+```
+
+If you are having issues with meta data, pipelines and artifacts, you might need to reset the database/cache. 
+
+Use the following script that clears the MySQL database and rollout restarts all deployments:
+
+```bash
+./reset_db.sh
 ```

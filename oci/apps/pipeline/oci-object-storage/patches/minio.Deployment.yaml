@@ -13,6 +13,7 @@ spec:
         - https://$(MINIO_HOST)
         env:
         - name: MINIO_HOST
+          # Note: this gateway setup only works with the home region
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config

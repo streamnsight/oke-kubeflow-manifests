@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. kubeflow.env
+. ./kubeflow.env
 
 if [[ -z "${REGION}" ]] ; then
   echo "Region not set"
