@@ -14,6 +14,7 @@ configMapGenerator:
   behavior: replace
   files:
   - viewer-pod-template.json
+
 secretGenerator:
 - name: mlpipeline-minio-artifact
   behavior: replace
@@ -25,3 +26,4 @@ generatorOptions:
 patchesStrategicMerge:
 - patches/ml-pipeline-ui.Deployment.yaml
 - patches/ml-pipeline.Deployment.yaml
+- patches/minio.Deployment.yaml
