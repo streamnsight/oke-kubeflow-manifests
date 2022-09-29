@@ -7,3 +7,4 @@ config
 minio.env
 mysql.env
 kubeflow.env
+output
