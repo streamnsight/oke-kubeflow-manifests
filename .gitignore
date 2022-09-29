@@ -8,3 +8,4 @@ minio.env
 mysql.env
 kubeflow.env
 output
+secret.env
