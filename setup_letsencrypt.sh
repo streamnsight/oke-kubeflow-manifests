@@ -25,3 +25,6 @@ eval "echo \"$(cat ./oci/common/istio-1-14/kubeflow-istio-resources/overlays/let
 
 eval "echo \"$(cat ./oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-dns01/letsencrypt.ClusterIssuer.yaml.tmpl)\"" \
 > ./oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-dns01/letsencrypt.ClusterIssuer.yaml
+
+eval "echo \"$(cat ./oci/apps/kserve/domain/config-domain.tmpl)\"" \
+> ./oci/apps/kserve/domain/config-domain.yaml
