@@ -9,3 +9,4 @@ mysql.env
 kubeflow.env
 output
 secret.env
+config-domain.yaml
