@@ -6,9 +6,16 @@ then
     read -p "Domain Name: " DOMAIN_NAME
 fi;
 
+DEFAULT_DOMAIN_ADMIN_EMAIL=$(echo admin@${DOMAIN_NAME})
+
 if [[ -z "${DOMAIN_ADMIN_EMAIL}" ]];
 then
-    read -p "Domain Name Admin Email: " DOMAIN_ADMIN_EMAIL
+    read -p "Domain Name Admin Email (defaults to ${DEFAULT_DOMAIN_ADMIN_EMAIL}) " DOMAIN_ADMIN_EMAIL
+fi;
+
+if [[ -z "${DOMAIN_ADMIN_EMAIL}" ]];
+then
+    export DOMAIN_ADMIN_EMAIL=${DEFAULT_DOMAIN_ADMIN_EMAIL}
 fi;
 
 export DOMAIN_NAME
