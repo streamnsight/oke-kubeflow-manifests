@@ -7,3 +7,8 @@ resources:
 components:
 - ../../../oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-dns01
 # - ../../../oci/common/oidc-authservice/overlays/letsencrypt
+- ../../../oci/apps/kserve/domain
+
+# net-certmanager is used to issue wildcard certificates for the namespace sub-domains 
+# using the let's encrypt ClusterIssuer with DNS01 challenge
+- ../../../oci/apps/kserve/net-certmanager

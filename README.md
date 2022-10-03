@@ -199,3 +199,9 @@ Use the following script that clears the MySQL database and rollout restarts all
 ```bash
 ./reset_db.sh
 ```
+
+
+References:
+
+- [https://knative.dev/docs/serving/using-a-tls-cert/](https://knative.dev/docs/serving/using-a-tls-cert/)
+
