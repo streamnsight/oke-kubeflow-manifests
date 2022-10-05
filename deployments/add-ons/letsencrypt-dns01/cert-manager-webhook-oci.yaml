@@ -7,7 +7,7 @@ metadata:
   namespace: cert-manager
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
 ---
@@ -19,7 +19,7 @@ metadata:
   name: cert-manager-webhook-oci:domain-solver
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
 rules:
@@ -54,7 +54,7 @@ metadata:
   name: cert-manager-webhook-oci:auth-delegator
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
 roleRef:
@@ -74,7 +74,7 @@ metadata:
   name: cert-manager-webhook-oci:domain-solver
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
 roleRef:
@@ -131,7 +131,7 @@ metadata:
   namespace: kube-system
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
 roleRef:
@@ -168,7 +168,7 @@ metadata:
   namespace: cert-manager
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
 spec:
@@ -190,7 +190,7 @@ metadata:
   namespace: cert-manager
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
 spec:
@@ -208,7 +208,7 @@ spec:
       serviceAccountName: cert-manager-webhook-oci
       containers:
         - name: cert-manager-webhook-oci
-          image: "sjc.ocir.io/bigdatadatasciencelarge/cert-manager-webhook-oci:1.2.0"
+          image: "sjc.ocir.io/bigdatadatasciencelarge/cert-manager-webhook-oci:1.6.1"
           imagePullPolicy: IfNotPresent
           args:
             - --tls-cert-file=/tls/tls.crt
@@ -249,7 +249,7 @@ metadata:
   namespace: cert-manager
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
   annotations:
@@ -272,7 +272,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
 spec:
@@ -292,7 +292,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
 spec:
@@ -315,7 +315,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
 spec:
@@ -330,7 +330,7 @@ metadata:
   namespace: "cert-manager"
   labels:
     app: cert-manager-webhook-oci
-    chart: cert-manager-webhook-oci-1.2.0
+    chart: cert-manager-webhook-oci-1.3.0
     release: cert-manager-webhook-oci
     heritage: Helm
 spec:

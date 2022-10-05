@@ -87,7 +87,6 @@ https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-setti
 
 To troubleshoot issues, check the logs of the `authservice-0` pod in namespace `auth` as well as the dex pod in namespace `istio-system`
 
-
 #### Users
 
 If you deploy IDCS, users can sign in automatically with Single Sign-On, however their user will not exist in KubeFlow and they will not be able to do anything.
@@ -107,6 +106,7 @@ spec:
 
 User namespace identifier can be anything. The kubeflow default naming convention is to use `kubeflow-`<email with . and @ replaced by -)>
 
+Use the `./create_user.sh` script to create a user profile and apply it.
 
 ### MySQL external Database
 
@@ -166,7 +166,7 @@ In the `deployments/overlays/kustomization.yaml` file, comment out the add-ons y
 
 ```yaml
 # - ../add-ons/https
-- ../add-ons/letsencrypt
+- ../add-ons/letsencrypt-dns01
 - ../add-ons/idcs
 - ../add-ons/external-mysql
 - ../add-ons/oci-object-storage
@@ -203,5 +203,24 @@ Use the following script that clears the MySQL database and rollout restarts all
 
 References:
 
+- [https://knative.dev/docs/serving/using-a-custom-domain/](https://knative.dev/docs/serving/using-a-custom-domain/)
 - [https://knative.dev/docs/serving/using-a-tls-cert/](https://knative.dev/docs/serving/using-a-tls-cert/)
+- [https://knative.dev/docs/serving/using-auto-tls/](https://knative.dev/docs/serving/using-auto-tls/)
+- [https://github.com/knative-sandbox/net-certmanager/releases](https://github.com/knative-sandbox/net-certmanager/releases)
+- [https://github.com/knative-sandbox/net-certmanager/releases/download/knative-v1.7.0/net-certmanager.yaml](https://github.com/knative-sandbox/net-certmanager/releases/download/knative-v1.7.0/net-certmanager.yaml)
 
+### Inference with Kserve
+
+```bash
+COOKIE_VALUE=xxxxx...
+MODEL_NAME=mnist-e2e
+NAMESPACE=ns
+DOMAIN_NAME=example.com
+MODEL_ENDPOINT=${MODEL_NAME}.${NAMESPACE}.${DOMAIN_NAME}
+
+curl -v -L -X POST -d @./input.json {} -H "Cookie: authservice_session=${COOKIE_VALUE}" -H "Host: ${MODEL_ENDPOINT}" https://${MODEL_ENDPOINT}/v1/models/${MODEL_NAME}:predict
+```
+
+```json
+
+```

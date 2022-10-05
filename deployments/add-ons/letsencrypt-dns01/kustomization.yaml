@@ -2,6 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
 resources:
+# helm template output of cert-manager-webhook-oci + add namespaces
 - cert-manager-webhook-oci.yaml
 
 components:
@@ -11,4 +12,5 @@ components:
 
 # net-certmanager is used to issue wildcard certificates for the namespace sub-domains 
 # using the let's encrypt ClusterIssuer with DNS01 challenge
+# 
 - ../../../oci/apps/kserve/net-certmanager

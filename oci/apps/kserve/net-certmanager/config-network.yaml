@@ -148,9 +148,11 @@ data:
     # fronting Knative with an external loadbalancer that deals with TLS termination and
     # Knative doesn't know about that otherwise.
     default-external-scheme: "http"
-  ingress-class: "istio.ingress.networking.knative.dev"
-  certificate-class: "cert-manager.certificate.networking.knative.dev"
-  auto-tls: "Enabled"
+  # ingress-class: "istio.ingress.networking.knative.dev"
+  # certificate-class: "cert-manager.certificate.networking.knative.dev"
+  auto-tls: Enabled
+  http-protocol: Redirected
+  namespace-wildcard-cert-selector: 'component: predictor'
   domain-template: '{{ index .Labels "serving.kserve.io/inferenceservice" }}.{{.Namespace}}.{{.Domain}}'
 kind: ConfigMap
 metadata:
