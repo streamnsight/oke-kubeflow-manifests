@@ -1,7 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
-
+# Create a new Env config that will be added to the env.
+# Env variables are overwritten when declared multiple times, 
+# according to the order they are listed, so this env config 
+# effectively overwrites dex config values
 configMapGenerator:
 - name: dex-idcs
   namespace: auth
@@ -11,5 +14,6 @@ configMapGenerator:
 generatorOptions:
   disableNameSuffixHash: true
   
+# Deployment is patched to add the new ConfigMap
 patchesStrategicMerge:
 - patches/dex.Deployment.yaml

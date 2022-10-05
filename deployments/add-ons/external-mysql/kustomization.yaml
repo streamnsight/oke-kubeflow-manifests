@@ -2,6 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
 components:
+# Katib (hyperparameters tuning) uses the MySQL database to store tuning results.
 - ../../../oci/apps/katib/katib-external-mysql
+
+# The meta data service uses the MySQL database to store cache information.
 - ../../../oci/apps/pipeline/mds-external-mysql
 

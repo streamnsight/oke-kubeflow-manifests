@@ -1,11 +1,17 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
+
+# Patch mlpipelines to store artifacts directly into OCI Object Storage
+# writes are direct and then reads are through the Minio Gateway as storage is private
+# and Minio acts as the client.
 configMapGenerator:
 - name: pipeline-install-config
   envs: 
   - params.env
   behavior: merge
+# patch workflow controller that defines config for each namespace 
+# to use direct storage on OCI
 - name: workflow-controller-configmap
   behavior: replace
   files:
@@ -14,14 +20,6 @@ configMapGenerator:
   behavior: replace
   files:
   - viewer-pod-template.json
-# - name: kubeflow-pipelines-profile-controller-code
-#   behavior: replace
-#   files:
-#   - sync.py
-# - name: workflow-controller-configmap
-#   behavior: replace
-#   files:
-#   - workflow-controller.ConfigMap.yaml
 
 secretGenerator:
 - name: mlpipeline-minio-artifact
@@ -31,52 +29,12 @@ secretGenerator:
 generatorOptions:
   disableNameSuffixHash: true
 
+# the minio Deployment is patched to use minio in gateway mode
+# note that gateway mode is deprecated on Minio, so this uses a frozen version of Minio
+# Also note that the last official version of Minio to support gateway mode does not support 
+# custom regions, so only the home region can be used.
+# patched version is being worked on.
 patchesStrategicMerge:
 - patches/ml-pipeline-ui.Deployment.yaml
 - patches/ml-pipeline.Deployment.yaml
 - patches/minio.Deployment.yaml
-
-
-# patches:
-# - patch: |-
-#     - op: add
-#       path: "/spec/template/spec/containers/0/env/-"
-#       value:
-#         name: MINIO_SSL
-#         valueFrom:
-#           configMapKeyRef:
-#             optional: true
-#             key: minioSSL
-#             name: pipeline-install-config
-#   target:
-#     kind: Deployment
-#     namespace: kubeflow
-#     name: kubeflow-pipelines-profile-controller
-# - patch: |-
-#     - op: add
-#       path: "/spec/template/spec/containers/0/env/-"
-#       value:
-#         name: MINIO_PORT
-#         valueFrom:
-#           configMapKeyRef:
-#             optional: true
-#             key: minioServicePort
-#             name: pipeline-install-config
-#   target:
-#     kind: Deployment
-#     namespace: kubeflow
-#     name: kubeflow-pipelines-profile-controller
-# - patch: |-
-#     - op: add
-#       path: "/spec/template/spec/containers/0/env/-"
-#       value:
-#         name: MINIO_HOST
-#         valueFrom:
-#           configMapKeyRef:
-#             optional: true
-#             key: minioServiceHost
-#             name: pipeline-install-config
-#   target:
-#     kind: Deployment
-#     namespace: kubeflow
-#     name: kubeflow-pipelines-profile-controller

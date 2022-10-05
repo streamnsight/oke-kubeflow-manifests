@@ -152,7 +152,7 @@ data:
   # certificate-class: "cert-manager.certificate.networking.knative.dev"
   auto-tls: Enabled
   http-protocol: Redirected
-  namespace-wildcard-cert-selector: 'component: predictor'
+  namespace-wildcard-cert-selector: '{}'
   domain-template: '{{ index .Labels "serving.kserve.io/inferenceservice" }}.{{.Namespace}}.{{.Domain}}'
 kind: ConfigMap
 metadata:

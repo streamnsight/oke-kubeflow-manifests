@@ -2,5 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
 components:
+# Dex is the authentication OIDC provider which acts as a gateway for other OIDC providers. 
+# It relays auth to IDCS
 - ../../../oci/common/dex/overlays/idcs
+# The authservice check requests, and adds the proper headers when authenticated.
 - ../../../oci/common/oidc-authservice/overlays/idcs

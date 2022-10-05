@@ -12,7 +12,7 @@ This release is for KubeFlow v1.6.0
     ./get_upstream.sh
     ```
 
-- Create a `kubeflow.env` file using the `kubeflow.env.tmpl` template. See each add-on option for the required details
+- Create a `kubeflow.env` file using the `kubeflow.env.tmpl` template. See each add-on option for the required details.
 
 - Define the admin user and password (overriding default user@example.com):
 
@@ -42,42 +42,90 @@ This release is for KubeFlow v1.6.0
 
 ### Let's Encrypt SSL Certificate generation
 
-To setup Let's Encrypt with your own domain, first setup the base distribution, get the load balancer public IP, and add an A record on your domain DNS. 
+DNS01 Challenge is the only method that allows creation of wildcard certificates. The `letsencrypt-dns01` add-on uses OCI DNS as the DNS provider.
 
-Verify that the domain propagates to your KubeFlow deployment before attempting to setup Lets Encrypt certificate generation.
+The letsencrypt-dns01 add-on is the default, but we provide a simpler, http01-challenge based method as well, which is simpler but more limited when it comes to serving model endpoint certificates.
 
-To deploy the overlay, run the script:
+The DNS01 method is preferred.
 
-```bash
-./setup_letsencrypt.sh
-```
+#### Setup with HTTP01 type challenge
 
-You'll be prompted for your domain name, and the domain admin email (required for Lets Encrypt)
+- Select the `letsencrypt-http01` add-on
+- Deploy the stack (!!! Make sure to configure the other add-ons before doing so)
+- Set the Public IP for the load balancer as an A record on your DNS provider.
 
-The overlay creates a `ClusterIssuer` for Lets Encrypt with `cert-manager`, a `Certificate` for the domain, and modifies the `authservice` configuration to white-list the `/.well-known/` path providing access to the Let's Encrypt token verification.
+#### Setup with DNS01 type challenge (default)
 
-Note: when you use LetsEncrypt, you run into a situation where the domain name needs to have the Load Balancer IP address, before the Load Balancer is actually created. You need to run the deployment, then get the IP address of the load balancer with:
+This method uses the OCI DNS as a DNS provider.
 
-```bash
-kubectl get service istio-ingressgateway -n istio-system
-```
+- Select the `letsencrypt-dns01` add-on (default)
+- Make sure you have populated the required variables in the `kubeflow.env` file
+  - DNS_ZONE_COMPARTMENT_ID
+  - DOMAIN_NAME
 
-Add this IP as a A record on your Domain Name with the IP address.
+- Create a DNS Zone on OCI
+
+  Using the CLI
+  ```bash
+  . ./kubeflow.env
+  oci dns zone create --compartment-id ${DNS_ZONE_COMPARTMENT_ID} --name ${DOMAIN_NAME} --zone-type PRIMARY
+  ```
+
+  or in the OCI Console
+  - Go to DNS Management -> DNS Zones
+  - Click Create Zone
+  - Zone Name is the Domain Name to register
+  - Select the compartment
+  - Zone Type: keep the default of `PRIMARY`
+  - Click Create
+
+- Important! Set at least 2 of the 4 nameserver names as NS records at your domain name provider.
+
+- Run the script to setup letsencrypt overlays:
+  ```bash
+  ./setup_letsencrypt.sh
+  ```
+
+- Deploy the stack (!!! Make sure to configure the other add-ons before doing so)
+- Set the Public IP from the load balancer as a A record on the OCI DNS Zone.
+
+  Using the CLI
+  ```bash
+  DOMAIN_IP=$(kubectl get service istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  # Set the A record pointing to the Load Balancer IP
+  oci dns record rrset update --force --domain ${DOMAIN_NAME} --zone-name-or-id ${DOMAIN_NAME} --rtype 'A' --items "[{\"domain\":\"${DOMAIN_NAME}\", \"rdata\":\"${DOMAIN_IP}\", \"rtype\":\"A\",\"ttl\":300}]"
+  # Set the CNAME record pointing wildcard subdomains to the root domain
+  oci dns record rrset update --force --domain "*.${DOMAIN_NAME}" --zone-name-or-id ${DOMAIN_NAME} --rtype 'CNAME' --items "[{\"domain\":\"*.${DOMAIN_NAME}\", \"rdata\":\"${DOMAIN_NAME}\", \"rtype\":\"CNAME\",\"ttl\":300}]"
+  ```
+
+  Using the OCI Console
+  - Go to the Zone created earlier
+  - Get the Load Balancer IP (EXTERNAL-IP)
+    ```bash
+    kubectl get service istio-ingressgateway -n istio-system
+    ```
+  - Add an A record with the EXTERNAL IP of the Load Balancer
+  - Add a CNAME record with '*' as a subdomain, and the root domain name as the Target.
+
+Note the Certificate can't be issued until the DNS propagates and the domain name is resolved, so it may take a while before the KubeFlow URL works properly.
 
 LetsEncrypt will retry validating the domain name for a while. Once the Domain name is resolved by DNS, LetsEncrypt will create the certificate. This can take some time.
 
 ### IDCS Config
 
-- Create an App in IDCS (Confidential Application)
+- From the OCI Console, go to Identity & Security -> Identity -> Federation
+- Click the OracleIdentityCloudService provider
+- Click the Oracle Identity Cloud Service Console URL to get to the IDCS admin console (!!! admin rights to the IDCS console is required to perform this step. Ask you ID admin to do this if you do not have access)
+- Create an App in IDCS (type: Confidential Application). Name is KubeFlow or something identifying the usage.
 - Give it the `Client Credentials` and `Authorization Code` grant types.
 - Provide a Redirect URL. Using Dex, it will be `https://<domain_name>/dex/callback`
-- Take note of the Client ID and Client Secret
+- Take note of the Client ID and Client Secret and inpu them in the `kubeflow.env` file.
 
-- Follow these instructions below to edit the issuer URL in IDCS left-side menu -> Security -> OAuth -> Issuer: Enter the instance url of the type: `https://idcs-<xxx>.identity.oraclecloud.com/`
+- Edit the issuer URL in IDCS left-side menu -> Security -> OAuth -> Issuer: Enter the instance url of the type: `https://idcs-<xxx>.identity.oraclecloud.com` (without trailing slash)
 
 - In IDCS left-side menu -> Settings -> Default Settings, make sure the Access Signing Certificate option is turned ON.
 
-https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-settings.html
+  See [https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-settings.html](https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-settings.html) for more details.
 
 - Run the following to generate the config files:
 
@@ -85,7 +133,7 @@ https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-setti
     ./setup_idcs.sh
     ```
 
-To troubleshoot issues, check the logs of the `authservice-0` pod in namespace `auth` as well as the dex pod in namespace `istio-system`
+To troubleshoot issues, check the logs of the `authservice-0` pod in namespace `auth` as well as the `dex` pod in namespace `istio-system`
 
 #### Users
 
@@ -106,7 +154,7 @@ spec:
 
 User namespace identifier can be anything. The kubeflow default naming convention is to use `kubeflow-`<email with . and @ replaced by -)>
 
-Use the `./create_user.sh` script to create a user profile and apply it.
+Use the `./create_user.sh` script to create a user profile and apply it automatically.
 
 ### MySQL external Database
 

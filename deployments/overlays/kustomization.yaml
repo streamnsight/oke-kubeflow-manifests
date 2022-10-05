@@ -7,7 +7,7 @@ resources:
 components:
 
 # !!! components need to be applied in the right order: 
-# letsencrypt creates a ssl cert so https is not required
+# letsencrypt creates a ssl cert so https add-on is not required
 # IDCS requires that SSL has been setup in order to be secure, 
 # so it needs to be applied after the https or letsencrypt add-on
 

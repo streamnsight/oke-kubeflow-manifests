@@ -13,6 +13,9 @@ patches:
     namespace: istio-system
     name: authservice
 
+# Add the env overrides for authservice to work with letsencrypt http01 challenge 
+# (i.e. it needs to whitelist the /.well-known/* endpoints where the challenge is 
+# served so letsencrypt can reach it without auth)
 configMapGenerator:
 - name: oidc-authservice-parameters-letsencrypt
   namespace: istio-system

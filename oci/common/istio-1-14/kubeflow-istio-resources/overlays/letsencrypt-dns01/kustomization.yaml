@@ -1,9 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
+# Create a ClusterIssuer and a Certificate for the kubeflow-gateway
+# The ClusterIssuer is defined to use DNS01 challenge using the cert-manager-webhook-oci webhook
+
 resources:
 - kubeflow-gw.Certificate.yaml
 - letsencrypt.ClusterIssuer.yaml
 
+# patch the Gateway with the TLS certificate info
 patchesStrategicMerge:
 - patches/kubeflow.Gateway.yaml

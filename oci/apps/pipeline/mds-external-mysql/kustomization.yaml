@@ -1,15 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
-# configMapGenerator:
-# - name: pipeline-install-config
-#   namespace: kubeflow
-#   envs: 
-#   - params.env
-#   behavior: merge
-
+# disable local MySQL and create service to External Name pointing 
+# to the FQDN of the managed MySQL database
+# also create new secret for MySQL access
 patchesStrategicMerge:
-# - patches/disable-default-secret.yaml
 - patches/disable-local-mysql.yaml
 - mysql.Service.yaml
 

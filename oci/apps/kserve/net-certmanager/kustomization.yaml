@@ -1,8 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
+# net-certmanager is used by knative to generate certificates; with autoTLS 
+# it automatically creates TLS certificate for dynamically generated KServe model endpoints
+# 
 resources:
 - net-certmanager.yaml
 
+# config-network defining the proper domain format used by KServe,
+# enable autoTLS and HTTP redirect to HTTPS
 patchesStrategicMerge:
 - "config-network.yaml"
