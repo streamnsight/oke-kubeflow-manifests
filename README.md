@@ -106,6 +106,16 @@ This method uses the OCI DNS as a DNS provider.
   ./setup_letsencrypt.sh
   ```
 
+- To use the Instance Principal auth for the DNS webhook, the cluster nodes need to have permission to alter DNS records. This requires a Dynamic Group targetting the nodes of the cluster, and a policy for this Dynamic Group:
+
+  ```
+  Allow dynamic-group <kubeflow_cluster_nodes> to manage dns in compartment <dns_zone_compartment_name> 
+  ```
+  TODO: This is pretty loose, and can be restricted
+
+  The alternative is to provide a Secret named `oci-profile` in the `cert-manager` namespace, following these instructions:
+  [https://github.com/streamnsight/cert-manager-webhook-oci#credentials](https://github.com/streamnsight/cert-manager-webhook-oci#credentials)
+
 - Deploy the stack (!!! Make sure to configure the other add-ons before doing so)
 
 ##### Post Deployment Setup
