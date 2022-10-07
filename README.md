@@ -333,8 +333,15 @@ Use the following script that clears the MySQL database and rollout restarts all
 ./reset_db.sh
 ```
 
-References:
+## References:
 
+DNS / Certificates
+- [https://cert-manager.io/docs/configuration/acme/dns01/acme-dns/](https://cert-manager.io/docs/configuration/acme/dns01/acme-dns/)
+
+Authentication
+- [https://github.com/arrikto/oidc-authservice/blob/master/docs/media/oidc_authservice_sequence_diagram.svg](https://github.com/arrikto/oidc-authservice/blob/master/docs/media/oidc_authservice_sequence_diagram.svg)
+
+Model Serving
 - [https://knative.dev/docs/serving/using-a-custom-domain/](https://knative.dev/docs/serving/using-a-custom-domain/)
 - [https://knative.dev/docs/serving/using-a-tls-cert/](https://knative.dev/docs/serving/using-a-tls-cert/)
 - [https://knative.dev/docs/serving/using-auto-tls/](https://knative.dev/docs/serving/using-auto-tls/)
