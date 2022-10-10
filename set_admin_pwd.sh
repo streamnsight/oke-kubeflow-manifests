@@ -1,5 +1,6 @@
 #!/bin/bash
 
+. ./kubeflow.env
 pip3 install bcrypt passlib -q
 
 if [[ -z "${ADMIN_EMAIL}" ]]; then
