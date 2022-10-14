@@ -2,7 +2,7 @@
 # This value MUST match the value returned in the provider config discovery.
 #
 # See: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
-issuer: ${ISSUER} 
+issuer: ${OCI_KUBEFLOW_ISSUER} 
 #http://dex.auth.svc.cluster.local:5556/dex
 
 connectors:
@@ -10,14 +10,14 @@ connectors:
   id: idcs
   name: idcs
   config:
-    issuer: ${IDCS_URL}
+    issuer: ${OCI_KUBEFLOW_IDCS_URL}
 
     # Connector config values starting with a "$" will read from the environment.
-    clientID: ${IDCS_CLIENT_ID}
-    clientSecret: ${IDCS_CLIENT_SECRET}
+    clientID: ${OCI_KUBEFLOW_IDCS_CLIENT_ID}
+    clientSecret: ${OCI_KUBEFLOW_IDCS_CLIENT_SECRET}
 
     # Dex's issuer URL + "/callback"
-    redirectURI: ${ISSUER}/callback
+    redirectURI: ${OCI_KUBEFLOW_ISSUER}/callback
     #http://127.0.0.1:5556/dex/callback
 
     # When enabled, the OpenID Connector will query the UserInfo endpoint for additional claims. UserInfo claims

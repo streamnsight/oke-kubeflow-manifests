@@ -3,18 +3,11 @@ kind: PersistentVolumeClaim
 metadata:
   name: mysql-pv-claim
 $patch: delete
-# ---
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: mysql
-# $patch: delete
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql
-  # namespace: kubeflow
   labels:
     app: mysql
 $patch: delete

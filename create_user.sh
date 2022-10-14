@@ -15,7 +15,7 @@ if [[ -z ${USERNAME} ]]; then
     export USERNAME=$DEFAULT_USERNAME
 fi
 
-eval "echo \"$(cat ./oci/profile/user-profile.yaml.tmpl)\"" > ./oci/profile/${USERNAME}.Profile.yaml
+eval "echo \"$(cat ./oci/profile/user-profile.tmpl.yaml)\"" > ./oci/profile/${USERNAME}.Profile.yaml
 
 echo "Profile manifest created at './oci/profile/${USERNAME}.Profile.yaml'"
 

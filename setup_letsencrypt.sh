@@ -1,37 +1,37 @@
 #!/bin/bash
 
 
-if [[ -z "${DOMAIN_NAME}" ]];
+if [[ -z "${OCI_KUBEFLOW_DOMAIN_NAME}" ]];
 then
-    read -p "Domain Name: " DOMAIN_NAME
+    read -p "Domain Name: " OCI_KUBEFLOW_DOMAIN_NAME
 fi;
 
-DEFAULT_DOMAIN_ADMIN_EMAIL=$(echo admin@${DOMAIN_NAME})
+DEFAULT_DOMAIN_ADMIN_EMAIL=$(echo admin@${OCI_KUBEFLOW_DOMAIN_NAME})
 
-if [[ -z "${DOMAIN_ADMIN_EMAIL}" ]];
+if [[ -z "${OCI_KUBEFLOW_DOMAIN_ADMIN_EMAIL}" ]];
 then
     read -p "Domain Name Admin Email (defaults to ${DEFAULT_DOMAIN_ADMIN_EMAIL}) " DOMAIN_ADMIN_EMAIL
 fi;
 
 if [[ -z "${DOMAIN_ADMIN_EMAIL}" ]];
 then
-    export DOMAIN_ADMIN_EMAIL=${DEFAULT_DOMAIN_ADMIN_EMAIL}
+    export OCI_KUBEFLOW_DOMAIN_ADMIN_EMAIL=${DEFAULT_DOMAIN_ADMIN_EMAIL}
 fi;
 
-export DOMAIN_NAME
-export DOMAIN_ADMIN_EMAIL
+export OCI_KUBEFLOW_DOMAIN_NAME
+export OCI_KUBEFLOW_DOMAIN_ADMIN_EMAIL
 
-eval "echo \"$(cat ./oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-http01/kubeflow-gw.Certificate.yaml.tmpl)\"" \
-> ./oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-http01/kubeflow-gw.Certificate.yaml
+eval "echo \"$(cat ./oci/common/istio/kubeflow-istio-resources/overlays/letsencrypt-http01/kubeflow-gw.Certificate.tmpl.yaml)\"" \
+> ./oci/common/istio/kubeflow-istio-resources/overlays/letsencrypt-http01/kubeflow-gw.Certificate.yaml
 
-eval "echo \"$(cat ./oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-http01/letsencrypt.ClusterIssuer.yaml.tmpl)\"" \
-> ./oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-http01/letsencrypt.ClusterIssuer.yaml
+eval "echo \"$(cat ./oci/common/istio/kubeflow-istio-resources/overlays/letsencrypt-http01/letsencrypt.ClusterIssuer.tmpl.yaml)\"" \
+> ./oci/common/istio/kubeflow-istio-resources/overlays/letsencrypt-http01/letsencrypt.ClusterIssuer.yaml
 
-eval "echo \"$(cat ./oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-dns01/kubeflow-gw.Certificate.yaml.tmpl)\"" \
-> ./oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-dns01/kubeflow-gw.Certificate.yaml
+eval "echo \"$(cat ./oci/common/istio/kubeflow-istio-resources/overlays/letsencrypt-dns01/kubeflow-gw.Certificate.tmpl.yaml)\"" \
+> ./oci/common/istio/kubeflow-istio-resources/overlays/letsencrypt-dns01/kubeflow-gw.Certificate.yaml
 
-eval "echo \"$(cat ./oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-dns01/letsencrypt.ClusterIssuer.yaml.tmpl)\"" \
-> ./oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-dns01/letsencrypt.ClusterIssuer.yaml
+eval "echo \"$(cat ./oci/common/istio/kubeflow-istio-resources/overlays/letsencrypt-dns01/letsencrypt.ClusterIssuer.tmpl.yaml)\"" \
+> ./oci/common/istio/kubeflow-istio-resources/overlays/letsencrypt-dns01/letsencrypt.ClusterIssuer.yaml
 
-eval "echo \"$(cat ./oci/apps/kserve/domain/config-domain.tmpl)\"" \
+eval "echo \"$(cat ./oci/apps/kserve/domain/config-domain.tmpl.yaml)\"" \
 > ./oci/apps/kserve/domain/config-domain.yaml

@@ -9,10 +9,10 @@ spec:
   renewBefore: 360h # 15d
   subject:
     organizations:
-      - ${DOMAIN_NAME}
+      - ${OCI_KUBEFLOW_DOMAIN_NAME}
   # The use of the common name field has been deprecated since 2000 and is
   # discouraged from being used.
-  commonName: ${DOMAIN_NAME}
+  commonName: ${OCI_KUBEFLOW_DOMAIN_NAME}
   isCA: false
   privateKey:
     algorithm: RSA
@@ -25,7 +25,7 @@ spec:
     - client auth
   # # At least one of a DNS Name, URI, or IP address is required.
   dnsNames:
-    - ${DOMAIN_NAME}
+    - ${OCI_KUBEFLOW_DOMAIN_NAME}
   # Issuer references are always required.
   issuerRef:
     name: letsencrypt-prod-issuer

@@ -9,7 +9,7 @@ resources:
 - cert-manager-webhook-oci.yaml
 
 components:
-- ../../../oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-dns01
+- ../../../oci/common/istio/kubeflow-istio-resources/overlays/letsencrypt-dns01
 - ../../../oci/apps/kserve/domain
 
 # net-certmanager is used to issue wildcard certificates for the namespace sub-domains 
