@@ -13,3 +13,4 @@ oci/apps/pipeline/oci-object-storage/minio.env
 oci/apps/pipeline/oci-object-storage/params.env
 output
 kubeflow.env
+oci/profile/*.Profile.yaml

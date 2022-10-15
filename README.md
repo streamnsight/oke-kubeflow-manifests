@@ -1,21 +1,22 @@
 # KubeFlow distribution for Oracle Kubernetes Engine (OKE)
 
+**This release is for KubeFlow v1.6**
+
 ## Requirements
 
 To deploy, you need:
 
+- OCI Command Line Interface v3.5+
 - kubectl 1.22+
-- kustomize v3.8.8
-- A Kubernetes cluster v1.24+
+- kustomize v3.7+ (support for Components)
+- A Kubernetes cluster v1.22+
 
 ## Setup
 
 !!! First, clone the repository and select the latest release branch for the KubeFlow release you wish to use.
 
-This release is for KubeFlow v1.6.0
-
 ```bash
-git clone --branch release/<latest release version> https://github.com/streamnsight/oke-kubeflow-manifests.git
+git clone --branch release/kf1.6 https://github.com/streamnsight/oke-kubeflow-manifests.git
 ```
 
 - Fetch the upstream KubeFlow manifests:
@@ -24,7 +25,7 @@ git clone --branch release/<latest release version> https://github.com/streamnsi
     ./get_upstream.sh
     ```
 
-- Create a `kubeflow.env` file using the `kubeflow.env.tmpl` template. See each add-on option for the required details.
+- Create a `kubeflow.env` file using the `kubeflow.tmpl.env` template. See each add-on option for the required details.
 
 - Define the admin user and password (overriding default user@example.com):
 
@@ -86,7 +87,7 @@ This method uses the OCI DNS as a DNS provider.
   Using the CLI
   ```bash
   . ./kubeflow.env
-  oci dns zone create --compartment-id ${DNS_ZONE_COMPARTMENT_ID} --name ${DOMAIN_NAME} --zone-type PRIMARY
+  oci dns zone create --compartment-id ${OCI_KUBEFLOW_DNS_ZONE_COMPARTMENT_OCID} --name ${OCI_KUBEFLOW_DOMAIN_NAME} --zone-type PRIMARY
   ```
 
   or in the OCI Console
@@ -130,9 +131,9 @@ Come back to this step after deploying the stack.
   . ./kubeflow.env
   DOMAIN_IP=$(kubectl get service istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   # Set the A record pointing to the Load Balancer IP
-  oci dns record rrset update --force --domain ${DOMAIN_NAME} --zone-name-or-id ${DOMAIN_NAME} --rtype 'A' --items "[{\"domain\":\"${DOMAIN_NAME}\", \"rdata\":\"${DOMAIN_IP}\", \"rtype\":\"A\",\"ttl\":300}]"
+  oci dns record rrset update --force --domain ${OCI_KUBEFLOW_DOMAIN_NAME} --zone-name-or-id ${OCI_KUBEFLOW_DOMAIN_NAME} --rtype 'A' --items "[{\"domain\":\"${OCI_KUBEFLOW_DOMAIN_NAME}\", \"rdata\":\"${DOMAIN_IP}\", \"rtype\":\"A\",\"ttl\":300}]"
   # Set the CNAME record pointing wildcard subdomains to the root domain
-  oci dns record rrset update --force --domain "*.${DOMAIN_NAME}" --zone-name-or-id ${DOMAIN_NAME} --rtype 'CNAME' --items "[{\"domain\":\"*.${DOMAIN_NAME}\", \"rdata\":\"${DOMAIN_NAME}\", \"rtype\":\"CNAME\",\"ttl\":300}]"
+  oci dns record rrset update --force --domain "*.${OCI_KUBEFLOW_DOMAIN_NAME}" --zone-name-or-id ${OCI_KUBEFLOW_DOMAIN_NAME} --rtype 'CNAME' --items "[{\"domain\":\"*.${OCI_KUBEFLOW_DOMAIN_NAME}\", \"rdata\":\"${OCI_KUBEFLOW_DOMAIN_NAME}\", \"rtype\":\"CNAME\",\"ttl\":300}]"
   ```
 
   Using the OCI Console
@@ -215,7 +216,7 @@ To configure a MySQL as a Service instance for KubeFlow:
 - If you placed the MySQL service in a different subnet than the node subnet, add a Security list to configure access from the pods (that uses a different CIDR range) to the CIDR of the MySQL instance, for TCP port 3306.
 
 - Once the DB is provisioned:
-  - Get the FQDN URI for the database and enter it in the `kubeflow.env` file for `DBHOST`.
+  - Get the FQDN URI for the database and enter it in the `kubeflow.env` file for `OCI_KUBEFLOW_MYSQL_HOST`.
 
 - Create a `kubeflow` user.
   This is important as some of the KubeFlow components require the password to be created with the `mysql_native_password` plugin, which is not the default on the MySQL service.
@@ -257,8 +258,8 @@ To configure a MySQL as a Service instance for KubeFlow:
   kubectl delete -f mysql.Pod.yaml
   ```
 
-- Enter the `kubeflow_user_password` you chose in the `kubeflow.env` file for `DBPASS`.
-- `DBUSER` should be `kubeflow` as created above.
+- Enter the `kubeflow_user_password` you chose in the `kubeflow.env` file for `OCI_KUBEFLOW_MYSQL_PASSWORD`.
+- `OCI_KUBEFLOW_MYSQL_USER` should be `kubeflow` as created above.
 
 - Run the script `setup_mysql.sh`
 
@@ -274,11 +275,11 @@ To use OCI Object Storage as storage for Pipelines and Pipeline Artifacts:
 - Under your user icon (top right in OCI Console), go to Tenancy, and gather the `Object Storage Namespace` name of your tenancy, and the `region` code of your home region (for example us-ashburn-1) from the tenancy details.
   Note: This ONLY works with the home region at this point, because Minio Gateway does not support other regions for S3 compatible gateways.
   
-  Set the values for `REGION` and `OSNAMESPACE` in the `kubeflow.env` file.
+  Set the values for `OCI_KUBEFLOW_OBJECT_STORAGE_REGION` and `OCI_KUBEFLOW_OBJECT_STORAGE_NAMESPACE` in the `kubeflow.env` file.
 
-- Create a bucket at the root of the tenancy (or in the compartment defined as the root for the S3 Compatibility API, which defaults to the root of the tenancy) for example `<username>-kubeflow-metadata`. Set the bucket name as `BUCKET` in the `kubeflow.env` file
+- Create a bucket at the root of the tenancy (or in the compartment defined as the root for the S3 Compatibility API, which defaults to the root of the tenancy) for example `<username>-kubeflow-metadata`. Set the bucket name as `OCI_KUBEFLOW_OBJECT_STORAGE_BUCKET` in the `kubeflow.env` file
 
-- Create a Customer Secret Key under your user (or a user created for this purpose), which will provide you with an `Access Key` and a `Secret Access Key`. Take note of these credentials and set then as `ACCESSKEY` and `SECRETKEY` in the `kubeflow.env` file
+- Create a Customer Secret Key under your user (or a user created for this purpose), which will provide you with an `Access Key` and a `Secret Access Key`. Take note of these credentials and set then as `OCI_KUBEFLOW_OBJECT_STORAGE_ACCESS_KEY` and `OCI_KUBEFLOW_OBJECT_STORAGE_SECRET_KEY` in the `kubeflow.env` file
 
 - Run the `setup_object_storage.sh` script
 

@@ -1,16 +1,17 @@
 #!/bin/bash
 
+. ./kubeflow.env
 
 if [[ -z "${OCI_KUBEFLOW_DOMAIN_NAME}" ]];
 then
-    read -p "Domain Name: " OCI_KUBEFLOW_DOMAIN_NAME
+    read -pr "Domain Name: " OCI_KUBEFLOW_DOMAIN_NAME
 fi;
 
-DEFAULT_DOMAIN_ADMIN_EMAIL=$(echo admin@${OCI_KUBEFLOW_DOMAIN_NAME})
+DEFAULT_DOMAIN_ADMIN_EMAIL="admin@${OCI_KUBEFLOW_DOMAIN_NAME}"
 
 if [[ -z "${OCI_KUBEFLOW_DOMAIN_ADMIN_EMAIL}" ]];
 then
-    read -p "Domain Name Admin Email (defaults to ${DEFAULT_DOMAIN_ADMIN_EMAIL}) " DOMAIN_ADMIN_EMAIL
+    read -pr "Domain Name Admin Email (defaults to ${DEFAULT_DOMAIN_ADMIN_EMAIL}) " DOMAIN_ADMIN_EMAIL
 fi;
 
 if [[ -z "${DOMAIN_ADMIN_EMAIL}" ]];
