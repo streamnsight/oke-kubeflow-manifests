@@ -6,7 +6,7 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: ${DOMAIN_ADMIN_EMAIL}
+    email: ${OCI_KUBEFLOW_DOMAIN_ADMIN_EMAIL}
     privateKeySecretRef:
       name: letsencrypt-prod
     solvers:

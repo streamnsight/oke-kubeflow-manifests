@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: reset-db
+  namespace: kubeflow
+spec:
+  parallelism: 1
+  completions: 1
+  ttlSecondsAfterFinished: 10
+  template:
+    metadata:
+      annotations:
+        "sidecar.istio.io/inject": "false"
+    spec:
+      containers:
+      - name: reset-db
+        image: mysql:8.0.26
+        command: 
+        - mysql 
+        - -u 
+        - $(DBCONFIG_USER)
+        - -p$(DBCONFIG_PASSWORD)
+        - -h 
+        - $(DBCONFIG_HOST_NAME) 
+        - -e 
+        - "drop database mlpipeline; drop database metadb; drop database cachedb;"
+        env:
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: mysql-secret
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: mysql-secret
+        - name: DBCONFIG_HOST_NAME
+          valueFrom:
+            configMapKeyRef:
+              key: dbHost
+              name: pipeline-install-config
+      restartPolicy: Never
+  backoffLimit: 4

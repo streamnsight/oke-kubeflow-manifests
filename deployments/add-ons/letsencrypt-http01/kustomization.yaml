@@ -2,6 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
 components:
-- ../../../oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-http01
+- ../../../oci/common/istio/kubeflow-istio-resources/overlays/letsencrypt-http01
 - ../../../oci/common/oidc-authservice/overlays/letsencrypt
 - ../../../oci/apps/kserve/domain

@@ -6,5 +6,5 @@ metadata:
   name: mysql
   namespace: kubeflow
 spec:
-  externalName: ${DBHOST}
+  externalName: ${OCI_KUBEFLOW_MYSQL_HOST}
   type: ExternalName
