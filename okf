@@ -552,9 +552,9 @@ def user_create(args):
         log.error(f'username must comply with Kubernetes namespace naming pattern [a-z0-9-]+')
         exit(1)
     # check is namespace exists
-    cmd = f'kubectl get ns {username}'
+    cmd = f'kubectl get ns {username}'.split()
     try:
-        subprocess.check_output(cmd, shell=True)
+        Popen(cmd, shell=False, stdout=PIPE)
         log.error(f'The username / namespace "{username}" already exists.')
         exit(1)
     except subprocess.CalledProcessError:
@@ -626,8 +626,6 @@ user: manager user profiles.
     user_create_parser = user_subparsers.add_parser('create', usage="""
     okf user create -E email -U username
     """)
-    user_create_parser.set_defaults(func=user_create)
-
     user_create_parser.add_argument('--debug', '-d', help='set log level to DEBUG', action='store_true')
     user_create_parser.add_argument('--email', '-E', dest='email', help='user email', default='')
     user_create_parser.add_argument('--username', '-U', help='username', default='')
