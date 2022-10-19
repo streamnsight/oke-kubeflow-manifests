@@ -115,6 +115,7 @@ formatter = logging.Formatter('[%(asctime)s][%(levelname)-7s] %(message)s')
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(formatter)
 log.addHandler(handler)
+
 no_prompts = False
 
 def parse_versions_file():
@@ -202,7 +203,7 @@ def validate_env_variable(env, env_template, variable, example, pattern, no_prom
     val_orig = val
     while val is None or val == '':
         if no_prompts:
-            raise ValueError(f'{variable} is not defined.')
+            raise ValueError(f'{variable} is not defined. Edit the env file or run the "okf config" command to configure missing variables.')
         val = input(f'{variable} is not defined. Please enter a value: \n> ')
         val = val.strip()
         
@@ -272,11 +273,13 @@ def validate_addons_config(add_ons, env_file, env, env_template, no_prompts):
         log.info(f'  OK: variables are configured and matching patterns')
 
 
-def render_template(env, template_file):
+def render_template(env, template_file, rendered_path=None):
     cwd = os.getcwd()
     template_path = template_file.split('/')
-    rendered_path = re.sub(r'.tmpl', '', template_file).split('/')
-    log.info(f'File: {os.sep.join(rendered_path)}')
+    if rendered_path is None:
+        rendered_path = os.sep.join(re.sub(r'.tmpl', '', template_file).split("/"))
+        rendered_path = os.path.join(cwd, *rendered_path)
+    log.info(f'Created file: {rendered_path}')
     template = None
     with open(os.path.join(cwd, *template_path), 'r') as f:
         template = f.readlines()
@@ -286,8 +289,8 @@ def render_template(env, template_file):
                 template[i] = re.sub(r'\$[{]?' + env_var + '[}]?', env.get(env_var), template[i])
                 template[i] = re.sub(r'\\\"', '"', template[i])
     for line in template:
-        log.debug(f'        {line.rstrip()}')
-    with open(os.path.join(cwd, *rendered_path), 'w') as f:
+        log.debug(f'                {line.rstrip()}')
+    with open(rendered_path, 'w') as f:
         f.writelines(template)
 
 
@@ -391,6 +394,14 @@ def setup_dns_post_deploy(env):
         raise ValueError('Enable to set CNAME record on DNS')
 
 
+def run_shell_cmd(cmd):
+    log.debug(cmd)
+    p = Popen(cmd, stdout=PIPE, stderr=PIPE)
+    while p.poll() is None:
+        line = p.stdout.readline()
+        log.info(line.decode('utf-8').rstrip())
+
+
 def kustomize_manifests(output):
     cwd = os.getcwd()
     overlay_path = os.path.join(cwd, 'deployments', 'overlays')
@@ -398,11 +409,7 @@ def kustomize_manifests(output):
         manifest_path = os.path.join(cwd, *output.split(os.sep))
         log.info(f'Generating manifests to {overlay_path}. This may take a few minutes...')
         cmd = f'kustomize build {overlay_path} -o {manifest_path}'.split() 
-        log.debug(cmd)
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE)
-        while p.poll() is None:
-            line = p.stdout.readline()
-            log.info(line.decode('utf-8').rstrip())
+        run_shell_cmd(cmd)
 
 
 def kustomize_and_apply():
@@ -450,19 +457,20 @@ def rollout_restart():
     log.info('Restarting deployments...')
     for ns in ['kubeflow', 'auth', 'knative-serving', 'knative-eventing']:
         cmd = f'kubectl rollout restart deployments -n {ns}'.split()
-        log.info(' '.join(cmd))
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE)
-        while p.poll() is None:
-            line = p.stdout.readline()
-            log.info(line.decode('utf-8').rstrip())
+        run_shell_cmd(cmd)
         
 
 def config(args):
     log.debug(args)
-    try:
+    if hasattr(args, 'no_prompts'):
         no_prompts = args.no_prompts
-    except AttributeError:
+    else:
         no_prompts = True
+    env_file = args.env_file
+    env = parse_kubeflow_env(env_file)
+    env_template = parse_kubeflow_env(ENV_FILE_TEMPLATE)
+    add_ons = get_add_ons()
+        
     kf_version = versions.get('KUBEFLOW_RELEASE_VERSION')
     get_upstream(kf_version)
     validate_kubectl()
@@ -494,55 +502,94 @@ def config(args):
         elif add_on == 'external-mysql':
             setup_mysql(env)
     log.info('Add-ons are configured')
-    return deferred_tasks
+    return deferred_tasks, env
 
 
 def build(args):
     log.debug(args)
-    deferred_tasks = config(args)
+    deferred_tasks, env = config(args)
     try:
         output_dest = args.output
     except AttributeError:
         output_dest = None
     if output_dest is not None:
         kustomize_manifests(output_dest)
-    return deferred_tasks
+    return deferred_tasks, env
 
 
 def deploy(args):
     log.debug(args)
-    deferred_tasks = build(args)
+    deferred_tasks, env = build(args)
     kustomize_and_apply()
     for func in deferred_tasks:
         func(env)
-    rollout_restart()
+    log.debug(args.no_restart)
+    if not args.no_restart:
+        rollout_restart()
+
+
+def user(args):
+    log.debug(args)
+    user_parser.print_help()
+
+
+def user_create(args):
+    email = args.email
+    while email == '':
+        email = input('User Email:')
+        log.debug(email)
+        email = email.strip()
+    username = args.username
+    while username == '':
+        username_default = re.sub(r'[@_.]', '-', email)
+        username = input(f'Username/Namespace (defaults to {username_default}): ')
+        username = username.strip()
+        if username == '':
+            username = username_default
+    match = re.match(r'^[a-z0-9-]+$', username)
+    log.debug(match)
+    if match is None:
+        log.error(f'username must comply with Kubernetes namespace naming pattern [a-z0-9-]+')
+        exit(1)
+    # check is namespace exists
+    cmd = f'kubectl get ns {username}'
+    try:
+        subprocess.check_output(cmd, shell=True)
+        log.error(f'The username / namespace "{username}" already exists.')
+        exit(1)
+    except subprocess.CalledProcessError:
+        pass
+    env_vars = {
+        'EMAIL': email,
+        'USERNAME': username
+    }
+    cwd = os.getcwd()
+    template_path = os.path.join(*['oci', 'profile', 'user-profile.tmpl.yaml'])
+    rendered_path = os.path.join(cwd, *['oci', 'profile', f'{email}.Profile.yaml'])
+    render_template(env_vars, template_path, rendered_path)
+    cmd = f'kubectl apply -f {rendered_path}'.split() 
+    run_shell_cmd(cmd)
+    if args.kfp:
+        kfp_template = os.path.join(cwd, *['oci', 'profile', 'pod_defaults', 'access-kf-pipeline.PodDefault.yaml'])
+        cmd = f'kubectl apply -f {kfp_template} -n {username}'.split() 
+        run_shell_cmd(cmd)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='OCI KubeFlow CLI',
-                                    usage="""
+                                    usage="./okf COMMAND [FLAGS]")
 
-'ocikf config'
-   Validate configuration and interpolate add-on manifests with variables 
-   from 'kubeflow.env' file. Defaults to prompting for missing values.
-'ocikf config -n|--no-prompts' 
-   use to validate config and return a non-zero exit code when config is missing values.
-'ocikf config -e|--envfile <custom.env>' 
-   Validate configuration and interpolate add-on manifests with variables 
-   from a specified environment file. Defaults to using 'kubeflow.env' env file.
-'ocikf build -o|--output <output file/folder>' 
-   configure and build the manifests into a file or an existing folder. 
-   Building to an existing folder will create separate manifest files.
-'ocikf deploy [-e <custom.env>]' 
-   configure add-on manifests from specified env file, build and deploy KubeFlow distribution.
-""")
-
-    parser.add_argument('--env_file', '-e', help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
+    # parser.add_argument('--env_file', '-e', help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
     parser.add_argument('--debug', '-d', help='set log level to DEBUG', action='store_true')
 
-    subparsers = parser.add_subparsers(title='subcommands',
+    subparsers = parser.add_subparsers(title='commands',
                                    description='valid subcommands',
-                                   help='see each command\'s help for additional help')
+                                   help="""
+config: configure add-ons required variables and generate add-on manifests files.\n
+build: configure add-ons and build manifests to file. Use if intermediate manifest files are needed.\n
+deploy: configure, build manifests and deploy, without intermediate files.\n
+user: manager user profiles.
+""")
     config_parser = subparsers.add_parser('config')
     config_parser.add_argument('--no-prompts', '-n', help='fails on missing values. Defaults to prompting for missing values', action='store_true')
     config_parser.add_argument('--env_file', '-e', help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
@@ -551,7 +598,7 @@ if __name__ == '__main__':
     
     build_parser = subparsers.add_parser('build', usage="""
     the build command is used to build manifests to file. It requires an output path or folder. 
-    Use -o <output file | folder> or use 'ocikf deploy' to build and deploy without intermediate files.
+    Use -o <output file | folder> or use 'okf deploy' to build and deploy without intermediate files.
     """)
     build_parser.add_argument('--output', '-o', help='output file or folder. If an existing folder is provided, generate individual manifests, as kustomize does.', required=True)
     build_parser.add_argument('--env_file', '-e', help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
@@ -561,24 +608,44 @@ if __name__ == '__main__':
     deploy_parser = subparsers.add_parser('deploy', usage="""
     the deploy command configures add-ons, builds manifests and deploys.
     """)
-    deploy_parser.add_argument('--env_file', '-e', help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
+    deploy_parser.add_argument('--env-file', '-e', dest='env_file', help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
     deploy_parser.add_argument('--debug', '-d', help='set log level to DEBUG', action='store_true')
+    deploy_parser.add_argument('--no-restart', '-n', dest='no_restart', help='disable forced rollout restart of the deployment to insure istio-sidecars are activated.', action='store_true', default=False)
     deploy_parser.set_defaults(func=deploy)
+
+    user_parser = subparsers.add_parser('user', usage="""
+    ./okf user COMMAND
+    """, description='the user command provides utilities to manage user namespaces.')
+    user_parser.add_argument('--debug', '-d', help='set log level to DEBUG', action='store_true')
+    user_parser.set_defaults(func=user)
+
+    user_subparsers = user_parser.add_subparsers(title='subcommands',
+                                   description='valid subcommands',
+                                   help='see each command\'s help for additional help')
+
+    user_create_parser = user_subparsers.add_parser('create', usage="""
+    okf user create -E email -U username
+    """)
+    user_create_parser.set_defaults(func=user_create)
+
+    user_create_parser.add_argument('--debug', '-d', help='set log level to DEBUG', action='store_true')
+    user_create_parser.add_argument('--email', '-E', dest='email', help='user email', default='')
+    user_create_parser.add_argument('--username', '-U', help='username', default='')
+    user_create_parser.add_argument('--kpf', dest='kfp', help='enable access to KubeFlow Pipelines in notebooks', action='store_true', default=False)
+    user_create_parser.set_defaults(func=user_create)
 
     args = parser.parse_args()
     log_level = logging.DEBUG if args.debug else logging.INFO
     log.setLevel(log_level)
     log.debug(args)
 
-    env_file = args.env_file
 
     versions = parse_versions_file()
-    env = parse_kubeflow_env(env_file)
-    env_template = parse_kubeflow_env(ENV_FILE_TEMPLATE)
-    add_ons = get_add_ons()
 
     try:
+        log.debug(args.func)
         # call submodule
         args.func(args)
-    except AttributeError:
+    except AttributeError as e:
+        log.debug(e)
         parser.print_help()
