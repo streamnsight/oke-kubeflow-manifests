@@ -577,8 +577,8 @@ if __name__ == '__main__':
     env_template = parse_kubeflow_env(ENV_FILE_TEMPLATE)
     add_ons = get_add_ons()
 
-    # try:
+    try:
         # call submodule
-    args.func(args)
-    # except AttributeError:
-        # parser.print_help()
+        args.func(args)
+    except AttributeError:
+        parser.print_help()
