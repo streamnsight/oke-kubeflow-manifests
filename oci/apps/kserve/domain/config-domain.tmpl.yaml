@@ -4,4 +4,4 @@ metadata:
   name: config-domain
   namespace: knative-serving
 data:
-  \"${DOMAIN_NAME}\": |
+  \"${OCI_KUBEFLOW_DOMAIN_NAME}\": |
