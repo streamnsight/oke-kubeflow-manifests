@@ -19,11 +19,15 @@ kubectl apply -f access-kf-pipeline.PodDefault.yaml
 
 - Run the Notebook
 
+- The Notebook last set of cells perform inference using the internal service that does not require authentication. To infer from the ourside with the public URL, authentication is required.
+
 ## Inference using Curl
 
 Using curl, inference can be performed with the following:
 
-The mnist-e2e-9.json payload is the number 9 image formated as binary in a json object. See the notebook for how to generte this payload.
+The mnist-e2e-9.json payload is the number 9 image formated as binary in a json object. See the notebook for how to generate this payload.
+
+Grab the cookie from the browser using the Developer tools, under Application -> Cookies
 
 ```bash
 export COOKIE_VALUE="<authservice-session cookie value from browser>"
