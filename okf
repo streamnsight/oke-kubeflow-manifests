@@ -12,8 +12,8 @@ from subprocess import Popen, PIPE
 
 # default input files
 ENV_FILE='kubeflow.env'
-ENV_FILE_TEMPLATE='kubeflow.tmpl.env'
 KUBEFLOW_VERSION_FILE='kubeflow_version.env'
+
 
 # variable example and pattern for validation
 variable_specs = {
@@ -46,8 +46,8 @@ variable_specs = {
         'pattern': r'[a-zA-Z0-9_]+'
     },
     'OCI_KUBEFLOW_MYSQL_PASSWORD': {
-        'example': '',
-        'pattern': None
+        'example': 'wIw_MqkrPrT9LuZcIhot[]1EPd7w7ll',
+        'pattern': r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!#$%&'()*+/:;<=>?@_`{|}~,[\]\-\.])[A-Za-z\d!#$%&'()*+/:;<=>?@_`{|}~,[\]\-\.]{8,32}$"
     },
     'OCI_KUBEFLOW_MYSQL_HOST': {
         'example': '',
@@ -117,6 +117,8 @@ handler.setFormatter(formatter)
 log.addHandler(handler)
 
 no_prompts = False
+env = None
+
 
 def parse_versions_file():
     versions = {}
@@ -131,15 +133,16 @@ def parse_versions_file():
 
 def parse_kubeflow_env(env_file=ENV_FILE):
     cwd = os.getcwd()
-    env = {}
-    with open(os.path.join(cwd, env_file), 'r') as f:
-        config = f.readlines()
-        for line in config:
-            line=line.strip()
-            if len(line) > 0 and line[0] != '#':
-                log.debug(line)
-                k, v = line.strip().split('=', 1)
-                env[k] = v.replace('"', '')
+    if env is None:
+        env = {}
+        with open(os.path.join(cwd, env_file), 'r') as f:
+            config = f.readlines()
+            for line in config:
+                line=line.strip()
+                if len(line) > 0 and line[0] != '#':
+                    log.debug(line)
+                    k, v = line.strip().split('=', 1)
+                    env[k] = v.replace('"', '')
     return env
 
 
@@ -196,9 +199,12 @@ def validate_oci_cli():
         raise ValueError('error looking for the oci cli')
 
 
-def validate_env_variable(env, env_template, variable, example, pattern, no_prompts):
-    if variable not in env_template.keys():
+def validate_env_variable(env_file, variable, no_prompts):
+    env = parse_kubeflow_env(env_file)
+    if variable not in variable_specs.keys():
         raise ValueError(f'{variable} is not a recognized variable.')
+    example = variable_specs[variable]['example']
+    pattern = variable_specs[variable]['pattern']
     val = env.get(variable)
     val_orig = val
     while val is None or val == '':
@@ -216,10 +222,10 @@ def validate_env_variable(env, env_template, variable, example, pattern, no_prom
         log.warning(f'{val} does not match the pattern "{pattern}"')
     if val != val_orig:
         env[variable] = val.strip()
-        save_variable(variable, val)
+        save_variable(env_file, variable, val)
 
 
-def save_variable(variable, val):
+def save_variable(env_file, variable, val):
     log.debug(f'Saving: {variable}')
     cwd = os.getcwd()
     content = None
@@ -257,7 +263,7 @@ def get_add_ons():
     return add_ons
 
 
-def validate_addons_config(add_ons, env_file, env, env_template, no_prompts):
+def validate_addons_config(add_ons, env_file, no_prompts):
     log.info(f'Checking configuration set in "{env_file}":')
     for add_on in add_ons:
         log.info(f'- {add_on} add-on:')
@@ -267,7 +273,7 @@ def validate_addons_config(add_ons, env_file, env, env_template, no_prompts):
             for variable in variables_to_check:
                 specs = variable_specs.get(variable, {})
                 log.debug(specs)
-                validate_env_variable(env, env_template, variable, specs.get('example'), specs.get('pattern', None), no_prompts)
+                validate_env_variable(env_file, variable, no_prompts)
         else:
             log.warning(f'!!! {add_on} has no variables or is not recognized')
         log.info(f'  OK: variables are configured and matching patterns')
@@ -277,7 +283,7 @@ def render_template(env, template_file, rendered_path=None):
     cwd = os.getcwd()
     template_path = template_file.split('/')
     if rendered_path is None:
-        rendered_path = os.sep.join(re.sub(r'.tmpl', '', template_file).split("/"))
+        rendered_path = re.sub(r'.tmpl', '', template_file).split('/')
         rendered_path = os.path.join(cwd, *rendered_path)
     log.info(f'Created file: {rendered_path}')
     template = None
@@ -304,7 +310,7 @@ def get_lb_ip():
     return lb_ip
 
 
-def setup_idcs(env, deferred_run=False):
+def setup_idcs(env):
     domain_name = env.get('OCI_KUBEFLOW_DOMAIN_NAME', '')
     issuer = ''
     if domain_name == '':
@@ -395,20 +401,23 @@ def setup_dns_post_deploy(env):
 
 
 def run_shell_cmd(cmd):
-    log.debug(cmd)
-    p = Popen(cmd, stdout=PIPE, stderr=PIPE)
+    log.info(cmd)
+    p = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
     while p.poll() is None:
         line = p.stdout.readline()
         log.info(line.decode('utf-8').rstrip())
+    return p.returncode
 
 
-def kustomize_manifests(output):
+def kustomize_manifests(output_path):
     cwd = os.getcwd()
     overlay_path = os.path.join(cwd, 'deployments', 'overlays')
-    if output is not None:
-        manifest_path = os.path.join(cwd, *output.split(os.sep))
+    if output_path is not None:
+        log.debug(output_path)
+        manifest_path = os.path.join(cwd, *output_path.split(os.sep))
         log.info(f'Generating manifests to {overlay_path}. This may take a few minutes...')
-        cmd = f'kustomize build {overlay_path} -o {manifest_path}'.split() 
+        cmd = f'kustomize build {overlay_path} -o {manifest_path}'
+        log.info(cmd)
         run_shell_cmd(cmd)
 
 
@@ -435,28 +444,10 @@ def kustomize_and_apply():
             log.error(e)
     
 
-# def apply_manifests(input_path):
-#     cwd = os.getcwd()
-#     manifests_path = os.path.join(cwd, input_path)
-#     while not ready:
-#         try:
-#             cmd = f'kubectl apply -f {manifests_path}'.split()
-#             log.debug(cmd)
-#             p = Popen(cmd, stdout=PIPE, stderr=PIPE)
-#             while p.poll() is None:
-#                 line = p.stdout.readline()
-#                 log.info(line.decode('utf-8').rstrip())
-#             retcode = p.poll()
-#             if retcode == 0:
-#                 ready = True
-#         except Exception as e:
-#             log.error(e)
-
-
 def rollout_restart():
     log.info('Restarting deployments...')
     for ns in ['kubeflow', 'auth', 'knative-serving', 'knative-eventing']:
-        cmd = f'kubectl rollout restart deployments -n {ns}'.split()
+        cmd = f'kubectl rollout restart deployments -n {ns}'
         run_shell_cmd(cmd)
         
 
@@ -468,20 +459,23 @@ def config(args):
         no_prompts = True
     env_file = args.env_file
     env = parse_kubeflow_env(env_file)
-    env_template = parse_kubeflow_env(ENV_FILE_TEMPLATE)
-    add_ons = get_add_ons()
         
     kf_version = versions.get('KUBEFLOW_RELEASE_VERSION')
+    if kf_version is None:
+        log.error('KubeFlow version not found')
+        exit(1)
     get_upstream(kf_version)
     validate_kubectl()
     validate_kustomize()
     validate_oci_cli()
+
+    add_ons = get_add_ons()
     log.info('The following add-ons are defined in "./deployments/overlays/kustomization.yaml":')
     for add_on in add_ons:
         log.info(f'- {add_on}')
     log.info('To disable add-ons that are not desired, comment them out in the kustomization.yaml file above.')
     log.info('Validating add-on configuration...')
-    validate_addons_config(add_ons, env_file, env, env_template, no_prompts)
+    validate_addons_config(add_ons, env_file, no_prompts)
 
     log.info('Configuring add-on templates...')
     deferred_tasks = []
@@ -567,56 +561,150 @@ def user_create(args):
     template_path = os.path.join(*['oci', 'profile', 'user-profile.tmpl.yaml'])
     rendered_path = os.path.join(cwd, *['oci', 'profile', f'{email}.Profile.yaml'])
     render_template(env_vars, template_path, rendered_path)
-    cmd = f'kubectl apply -f {rendered_path}'.split() 
+    cmd = f'kubectl apply -f {rendered_path}'
     run_shell_cmd(cmd)
     if args.kfp:
         kfp_template = os.path.join(cwd, *['oci', 'profile', 'pod_defaults', 'access-kf-pipeline.PodDefault.yaml'])
-        cmd = f'kubectl apply -f {kfp_template} -n {username}'.split() 
+        cmd = f'kubectl apply -f {kfp_template} -n {username}'
         run_shell_cmd(cmd)
+
+
+def mysql(args):
+    log.debug(args)
+    mysql_parser.print_help()
+
+
+def mysql_create_kf_user(args):
+    env_file = args.env_file
+    user = args.user
+    password = args.password
+    sys_user = args.sys_user
+    sys_password = args.sys_password
+    no_prompts = args.no_prompts
+    if (password is None or sys_password is None) and no_prompts:
+        if password is None:
+            log.error('password is missing')
+        if sys_password is None:
+            log.error('sys-password is missing')
+        exit(1)
+    if not no_prompts:
+        user = input(f'Enter username (defaults to "{user}"): ')
+        if user.strip() == '':
+            user = args.user
+        else:
+            user = user.strip()
+    while not no_prompts and password is None:
+        password = input(f'Enter a password for user "{user}": ')
+        password = password.strip()
+        pattern = variable_specs['OCI_KUBEFLOW_MYSQL_PASSWORD']['pattern']
+        match = re.match(pattern, password)
+        if match is None:
+            log.error(f'The password provided does not match the pattern {pattern}')
+            password = None
+    if not no_prompts:
+        sys_user = input(f'Enter system/admin username (defaults to "{sys_user}"): ')
+        if sys_user.strip() == '':
+            sys_user = args.sys_user
+        else:
+            sys_user = sys_user.strip()
+    if not no_prompts and sys_password is None:
+        sys_password = input(f'Enter the password for the MySQL system/admin user "{sys_user}": ')
+        sys_password = sys_password.strip()
+
+    if no_prompts is False:
+        log.warning(f'This command will create a "{user}" user in the MySQL database.')
+        log.warning(f'This command will update the environment variable "OCI_KUBEFLOW_MYSQL_USER" in the file "{env_file}"')
+        log.warning(f'This command will update the environment variable "OCI_KUBEFLOW_MYSQL_PASSWORD" in the file "{env_file}"')
+        log.warning('Would you like to continue? (y/N): ')
+        choice = input('> ')
+        if choice.lower().strip() != 'y':
+            exit(0)
+
+    overrides = '{ "apiVersion": "v1", "metadata": { "annotations": { "sidecar.istio.io/inject": "false" } } }'
+    sql = f'"select User, plugin from mysql.user where user = \'{user}\';"'
+    cmd = f'kubectl run mysql-set-kubeflow-user --rm -it --image=mysql:8.0.26 --restart=Never \
+            --overrides=\'{overrides}\' -- mysql -u "{sys_user}" -p"{sys_password}" -h mysql \
+            -e {sql} | grep "| {user} | mysql_native_password |"'
+    log.debug(cmd.replace(password, '******').replace(sys_password, '******'))
+    p = Popen(cmd, shell=True, stdout=PIPE, stdin=PIPE, stderr=PIPE)
+    while p.poll() is None:
+        line = p.stdout.readline()
+        log.info(line.decode('utf-8').rstrip())
+    log.debug(f'return code: {p.returncode}')
+    if p.returncode == 0:
+        log.error(f'User "{user}" already exists')
+        exit(1)
+
+    sql = f'"create user {user}@\'%\' identified with mysql_native_password by \'{password}\' default role administrator;"'
+    cmd = f'kubectl run mysql-set-kubeflow-user --rm -it --image=mysql:8.0.26 --restart=Never \
+            --overrides=\'{overrides}\' -- mysql -u "{sys_user}" -p"{sys_password}" -h mysql \
+            -e {sql}'
+    log.debug(cmd.replace(password, '******').replace(sys_password, '******'))
+    p = Popen(cmd, shell=True, stdout=PIPE, stdin=PIPE, stderr=PIPE)
+    while p.poll() is None:
+        line = p.stdout.readline()
+        log.info(line.decode('utf-8').rstrip())
+    if p.returncode == 0:
+        save_variable(env_file, 'OCI_KUBEFLOW_MYSQL_USER', user)
+        save_variable(env_file, 'OCI_KUBEFLOW_MYSQL_PASSWORD', password)
+    else:
+        log.error(f'User "{user}" could not be created. \
+            It may exist already but does not use the "mysql_native_password" plugin. Try deleting the user and re-creating it.')
+
+
+def mysql_reset_db(args):
+    cmds = [
+        'kubectl apply -f reset-db.Job.yaml',
+        'kubectl wait --for=condition=Complete --timeout=30s -n kubeflow job/reset-db',
+        'kubectl logs job/reset-db',
+        'kubectl rollout restart deployments -n kubeflow'
+    ]
+    for cmd in cmds:
+        r = run_shell_cmd(cmd)
+        if r != 0:
+            log.error('command failed')
+            exit(1)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='OCI KubeFlow CLI',
                                     usage="./okf COMMAND [FLAGS]")
-
-    # parser.add_argument('--env_file', '-e', help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
-    parser.add_argument('--debug', '-d', help='set log level to DEBUG', action='store_true')
-
     subparsers = parser.add_subparsers(title='commands',
                                    description='valid subcommands',
                                    help="""
 config: configure add-ons required variables and generate add-on manifests files.\n
 build: configure add-ons and build manifests to file. Use if intermediate manifest files are needed.\n
 deploy: configure, build manifests and deploy, without intermediate files.\n
-user: manager user profiles.
+user: manage user profiles.
+mysql: manage mysql db
 """)
-    config_parser = subparsers.add_parser('config')
-    config_parser.add_argument('--no-prompts', '-n', help='fails on missing values. Defaults to prompting for missing values', action='store_true')
-    config_parser.add_argument('--env_file', '-e', help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
-    config_parser.add_argument('--debug', '-d', help='set log level to DEBUG', action='store_true')
+    config_parser = subparsers.add_parser('config',
+        usage='./okf config [FLAGS]',
+        description="the config command configures the add-on manifests with the variables from the env-file")
+    config_parser.add_argument('--yes', '-y', dest='no_prompts', help='no prompts. Will fails on missing values. Defaults to prompting for missing values', action='store_true')
+    config_parser.add_argument('--env-file', '-e', dest="env_file", help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
     config_parser.set_defaults(func=config)
     
-    build_parser = subparsers.add_parser('build', usage="""
-    the build command is used to build manifests to file. It requires an output path or folder. 
-    Use -o <output file | folder> or use 'okf deploy' to build and deploy without intermediate files.
-    """)
+    build_parser = subparsers.add_parser('build', 
+        usage='./okf build [FLAGS]',
+        description="""
+the build command is used to build manifests to file. It requires an output path or folder. 
+Use -o <output file | folder> or use 'okf deploy' to build and deploy without intermediate files.
+""")
     build_parser.add_argument('--output', '-o', help='output file or folder. If an existing folder is provided, generate individual manifests, as kustomize does.', required=True)
     build_parser.add_argument('--env_file', '-e', help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
-    build_parser.add_argument('--debug', '-d', help='set log level to DEBUG', action='store_true')
     build_parser.set_defaults(func=build)
 
-    deploy_parser = subparsers.add_parser('deploy', usage="""
-    the deploy command configures add-ons, builds manifests and deploys.
-    """)
+    deploy_parser = subparsers.add_parser('deploy', 
+        usage='./okf deploy [FLAGS]',
+        description="the deploy command configures add-ons, builds manifests and deploys.")
     deploy_parser.add_argument('--env-file', '-e', dest='env_file', help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
-    deploy_parser.add_argument('--debug', '-d', help='set log level to DEBUG', action='store_true')
     deploy_parser.add_argument('--no-restart', '-n', dest='no_restart', help='disable forced rollout restart of the deployment to insure istio-sidecars are activated.', action='store_true', default=False)
     deploy_parser.set_defaults(func=deploy)
 
     user_parser = subparsers.add_parser('user', usage="""
     ./okf user COMMAND
     """, description='the user command provides utilities to manage user namespaces.')
-    user_parser.add_argument('--debug', '-d', help='set log level to DEBUG', action='store_true')
     user_parser.set_defaults(func=user)
 
     user_subparsers = user_parser.add_subparsers(title='subcommands',
@@ -626,24 +714,42 @@ user: manager user profiles.
     user_create_parser = user_subparsers.add_parser('create', usage="""
     okf user create -E email -U username
     """)
-    user_create_parser.add_argument('--debug', '-d', help='set log level to DEBUG', action='store_true')
     user_create_parser.add_argument('--email', '-E', dest='email', help='user email', default='')
     user_create_parser.add_argument('--username', '-U', help='username', default='')
     user_create_parser.add_argument('--kpf', dest='kfp', help='enable access to KubeFlow Pipelines in notebooks', action='store_true', default=False)
     user_create_parser.set_defaults(func=user_create)
 
-    args = parser.parse_args()
-    log_level = logging.DEBUG if args.debug else logging.INFO
-    log.setLevel(log_level)
-    log.debug(args)
+    mysql_parser = subparsers.add_parser('mysql', 
+        usage="./okf mysql COMMAND", 
+        description='the mysql command provides utilities to manage the mysql database.')
+    mysql_parser.set_defaults(func=mysql)
 
+    mysql_subparsers = mysql_parser.add_subparsers(title='subcommands',
+                                   description='valid subcommands',
+                                   help='see each command\'s help for additional help')
+
+    mysql_create_kf_user_parser = mysql_subparsers.add_parser('create-kf-user', usage="okf mysql create-kf-user")
+    mysql_create_kf_user_parser.add_argument('--env_file', '-e', help='environment variables file to use (defaults to "kubeflow.env")', default=ENV_FILE)
+    mysql_create_kf_user_parser.add_argument('--user', '-u', dest='user', help='user name', default='kubeflow')
+    mysql_create_kf_user_parser.add_argument('--password', '-p', dest='password', help='user password', default=None)
+    mysql_create_kf_user_parser.add_argument('--sys-user', '-U', dest='sys_user', help='sys/admin username', default='ADMIN')
+    mysql_create_kf_user_parser.add_argument('--sys-password', '-P', dest='sys_password', help='sys/admin password', default=None)
+    mysql_create_kf_user_parser.add_argument('--yes', '-y', dest='no_prompts', help='no prompts', action='store_true')
+    mysql_create_kf_user_parser.set_defaults(func=mysql_create_kf_user)
+
+    mysql_reset_db_parser = mysql_subparsers.add_parser('reset-db', usage="okf mysql reset-db", description="resets the metada, cache and mlpipeline tables")
+    mysql_reset_db_parser.set_defaults(func=mysql_reset_db)
+
+    args = parser.parse_args()
+    debug = os.environ.get('DEBUG', None)
+    log_level = logging.DEBUG if debug is not None else logging.INFO
+    log.setLevel(log_level)
 
     versions = parse_versions_file()
 
     try:
-        log.debug(args.func)
         # call submodule
         args.func(args)
     except AttributeError as e:
-        log.debug(e)
+        log.error(e)
         parser.print_help()
