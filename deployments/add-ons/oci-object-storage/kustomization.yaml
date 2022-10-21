@@ -1,6 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
+commonAnnotations:
+  add-on.kubeflow.oraclecloud.com/oci-object-storage: 1.0.0
+
 components:
 - ../../../oci/apps/pipeline/oci-object-storage
 
