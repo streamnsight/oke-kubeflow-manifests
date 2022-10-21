@@ -541,7 +541,8 @@ class InfrastructureManager():
                 subprocess.check_output(f'oci dns zone create --compartment-id {dns_zone_compartment_id} --name {domain_name} --zone-type PRIMARY', shell=True)
                 log.info(f'Please enter the nameservers above at the provider for the domain {domain_name}')
             except subprocess.CalledProcessError:
-                raise ValueError('enable to create the DNS Zone')
+                log.error('Unable to create the DNS Zone. Please try to create it manually.')
+                exit(1)
 
     @classmethod
     def setup_dns_records(cls, domain_name):
@@ -561,7 +562,7 @@ class InfrastructureManager():
             cmd = f'oci dns record rrset update --force --domain {domain_name} --zone-name-or-id {domain_name} --rtype "A" --items \'[{{"domain":"{domain_name}", "rdata":"{lb_ip}", "rtype": "A", "ttl":300}}]\''
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
-            log.error('Enable to set load balancer IP on DNS')
+            log.error('Unable to set load balancer IP on DNS. Please try to set it up manually.')
             exit(1)
         try:
             log.info(f'DNS setup: set CNAME record for wildcard sub-domain *.{domain_name}')
@@ -569,7 +570,7 @@ class InfrastructureManager():
             cmd = f'oci dns record rrset update --force --domain "*.{domain_name}" --zone-name-or-id {domain_name} --rtype "CNAME" --items \'[{{"domain": "*.{domain_name}", "rdata": "{domain_name}", "rtype": "CNAME", "ttl":300}}]\''
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
-            log.error('Enable to set CNAME record on DNS')
+            log.error('Unable to set CNAME record on DNS. Please try to set it up manually.')
             exit(1)
 
     @classmethod        

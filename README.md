@@ -19,23 +19,11 @@ To deploy, you need:
 git clone --branch release/kf1.6 https://github.com/streamnsight/oke-kubeflow-manifests.git
 ```
 
-- Fetch the upstream KubeFlow manifests:
+- Run the CLI config:
 
-    ```bash
-    ./get_upstream.sh
-    ```
-
-- Create a `kubeflow.env` file using the `kubeflow.tmpl.env` template. See each add-on option for the required details.
-
-- Define the admin user and password (overriding default user@example.com):
-
-    ```bash
-    ./set_admin_pwd.sh
-    ```
-
-- A Kubernetes Cluster needs to be provisioned. It can be provisioned using the OCI Console 'Quick Setup'. Ensure that the Kubernetes version is 1.24.
-
-- Configure access to your Kubernetes cluster following the OCI Console info. You may need a Bastion Host if you selected a Private Endpoint.
+  ```bash
+  ./okf config
+  ```
 
 ## Deploy the minimal config
 
@@ -43,11 +31,13 @@ git clone --branch release/kf1.6 https://github.com/streamnsight/oke-kubeflow-ma
 
   !! If you do want to use the add-ons, it is recommended to configure everything at once, or you will need to roll-out restart all the deployments.
 
-    ```bash
-    while ! kustomize build deployment/base | kubectl apply -f - ; do : done;
-    ```
+  Edit the `./deployments/overlays/kustomization.yaml` file and comment out the add-ons.
 
-    This deploys KubeFlow with a Flexible OCI Load Balancer and a self-signed certificate for HTTPS.
+- Run:
+
+  ```bash
+  ./okf deploy
+  ```
 
 - Open the UI:
 
@@ -56,6 +46,8 @@ git clone --branch release/kf1.6 https://github.com/streamnsight/oke-kubeflow-ma
     ```
 
 ## Deploy with Add-ons
+
+Edit the `./deployments/overlays/kustomization.yaml` file and comment out the add-ons you do not wish to use.
 
 ### Let's Encrypt SSL Certificate generation
 
@@ -67,7 +59,14 @@ The DNS01 method is preferred.
 
 #### Setup with HTTP01 type challenge
 
-- Select the `letsencrypt-http01` add-on
+- Select the `letsencrypt-http01` add-on in the `./deployments/overlays/kustomization.yaml` file
+ (https and letsencrypt-dns01 add-ons should be commented out)
+- Run
+
+    ```bash
+    ./okf config
+    ```
+
 - Deploy the stack (!!! Make sure to configure the other add-ons before doing so)
 - Set the Public IP for the load balancer as an A record on your DNS provider.
 
@@ -75,16 +74,27 @@ The DNS01 method is preferred.
 
 This method uses the OCI DNS as a DNS provider.
 
-- Select the `letsencrypt-dns01` add-on (default) in the `deployment/overlays/kustomization.yaml` file 
-(https and letsencrypt-http01 add-ons should be commented out)
+- Select the `letsencrypt-dns01` add-on (default) in the `deployment/overlays/kustomization.yaml` file
+ (https and letsencrypt-http01 add-ons should be commented out)
 
 - Make sure you have populated the required variables in the `kubeflow.env` file for
-  - DNS_ZONE_COMPARTMENT_ID
-  - DOMAIN_NAME
+  - OCI_KUBEFLOW_DNS_ZONE_COMPARTMENT_ID
+  - OCI_KUBEFLOW_DOMAIN_NAME
+
+- Run the config command to configure everything automatically
+
+  ```bash
+  ./okf config
+  ```
+
+The setup may fail if you do not have credentials to manage DNS Zones.
+
+Manual setup consists in:
 
 - Create a DNS Zone on OCI
 
   Using the CLI
+
   ```bash
   . ./kubeflow.env
   oci dns zone create --compartment-id ${OCI_KUBEFLOW_DNS_ZONE_COMPARTMENT_OCID} --name ${OCI_KUBEFLOW_DOMAIN_NAME} --zone-type PRIMARY
@@ -100,28 +110,22 @@ This method uses the OCI DNS as a DNS provider.
 
 - Important! Note the URIs for the nameservers and set at least 2 of the 4 nameserver names as NS records at your domain name provider.
 
-- Run the script to setup letsencrypt overlays:
-
-  ```bash
-  . ./kubeflow.env
-  ./setup_letsencrypt.sh
-  ```
-
 - To use the Instance Principal auth for the DNS webhook, the cluster nodes need to have permission to alter DNS records. This requires a Dynamic Group targetting the nodes of the cluster, and a policy for this Dynamic Group:
 
-  ```
+  ```bash
   Allow dynamic-group <kubeflow_cluster_nodes> to manage dns in compartment <dns_zone_compartment_name> 
   ```
+
   TODO: This is pretty loose, and can be restricted
 
   The alternative is to provide a Secret named `oci-profile` in the `cert-manager` namespace, following these instructions:
   [https://github.com/streamnsight/cert-manager-webhook-oci#credentials](https://github.com/streamnsight/cert-manager-webhook-oci#credentials)
 
-- Deploy the stack (!!! Make sure to configure the other add-ons before doing so)
-
 ##### Post Deployment Setup
 
-Come back to this step after deploying the stack.
+The `./okf deploy` command will update the DNS records, but may fail if you do ot have the required permissions to manage DNS Zone.
+
+If it fails, after deploying the stack, manual setup consists of:
 
 - Set the Public IP from the load balancer as a A record on the OCI DNS Zone.
 
