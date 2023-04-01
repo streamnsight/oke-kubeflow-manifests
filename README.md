@@ -1,40 +1,29 @@
 # KubeFlow distribution for Oracle Kubernetes Engine (OKE)
 
+**This release is for KubeFlow v1.6**
+
 ## Requirements
 
 To deploy, you need:
 
+- OCI Command Line Interface v3.5+
 - kubectl 1.22+
-- kustomize v3.8.8
-- A Kubernetes cluster v1.24+
+- kustomize v3.7+ (support for Components)
+- A Kubernetes cluster v1.22+
 
 ## Setup
 
 !!! First, clone the repository and select the latest release branch for the KubeFlow release you wish to use.
 
-This release is for KubeFlow v1.6.0
-
 ```bash
-git clone --branch release/<latest release version> https://github.com/streamnsight/oke-kubeflow-manifests.git
+git clone --branch release/kf1.6 https://github.com/streamnsight/oke-kubeflow-manifests.git
 ```
 
-- Fetch the upstream KubeFlow manifests:
+- Run the CLI config:
 
-    ```bash
-    ./get_upstream.sh
-    ```
-
-- Create a `kubeflow.env` file using the `kubeflow.env.tmpl` template. See each add-on option for the required details.
-
-- Define the admin user and password (overriding default user@example.com):
-
-    ```bash
-    ./set_admin_pwd.sh
-    ```
-
-- A Kubernetes Cluster needs to be provisioned. It can be provisioned using the OCI Console 'Quick Setup'. Ensure that the Kubernetes version is 1.24.
-
-- Configure access to your Kubernetes cluster following the OCI Console info. You may need a Bastion Host if you selected a Private Endpoint.
+  ```bash
+  ./okf config
+  ```
 
 ## Deploy the minimal config
 
@@ -42,11 +31,13 @@ git clone --branch release/<latest release version> https://github.com/streamnsi
 
   !! If you do want to use the add-ons, it is recommended to configure everything at once, or you will need to roll-out restart all the deployments.
 
-    ```bash
-    while ! kustomize build deployment/base | kubectl apply -f - ; do : done;
-    ```
+  Edit the `./deployments/overlays/kustomization.yaml` file and comment out the add-ons.
 
-    This deploys KubeFlow with a Flexible OCI Load Balancer and a self-signed certificate for HTTPS.
+- Run:
+
+  ```bash
+  ./okf deploy
+  ```
 
 - Open the UI:
 
@@ -55,6 +46,8 @@ git clone --branch release/<latest release version> https://github.com/streamnsi
     ```
 
 ## Deploy with Add-ons
+
+Edit the `./deployments/overlays/kustomization.yaml` file and comment out the add-ons you do not wish to use.
 
 ### Let's Encrypt SSL Certificate generation
 
@@ -66,7 +59,14 @@ The DNS01 method is preferred.
 
 #### Setup with HTTP01 type challenge
 
-- Select the `letsencrypt-http01` add-on
+- Select the `letsencrypt-http01` add-on in the `./deployments/overlays/kustomization.yaml` file
+ (https and letsencrypt-dns01 add-ons should be commented out)
+- Run
+
+    ```bash
+    ./okf config
+    ```
+
 - Deploy the stack (!!! Make sure to configure the other add-ons before doing so)
 - Set the Public IP for the load balancer as an A record on your DNS provider.
 
@@ -74,19 +74,30 @@ The DNS01 method is preferred.
 
 This method uses the OCI DNS as a DNS provider.
 
-- Select the `letsencrypt-dns01` add-on (default) in the `deployment/overlays/kustomization.yaml` file 
-(https and letsencrypt-http01 add-ons should be commented out)
+- Select the `letsencrypt-dns01` add-on (default) in the `deployment/overlays/kustomization.yaml` file
+ (https and letsencrypt-http01 add-ons should be commented out)
 
 - Make sure you have populated the required variables in the `kubeflow.env` file for
-  - DNS_ZONE_COMPARTMENT_ID
-  - DOMAIN_NAME
+  - OCI_KUBEFLOW_DNS_ZONE_COMPARTMENT_ID
+  - OCI_KUBEFLOW_DOMAIN_NAME
+
+- Run the config command to configure everything automatically
+
+  ```bash
+  ./okf config
+  ```
+
+The setup may fail if you do not have credentials to manage DNS Zones.
+
+Manual setup consists in:
 
 - Create a DNS Zone on OCI
 
   Using the CLI
+
   ```bash
   . ./kubeflow.env
-  oci dns zone create --compartment-id ${DNS_ZONE_COMPARTMENT_ID} --name ${DOMAIN_NAME} --zone-type PRIMARY
+  oci dns zone create --compartment-id ${OCI_KUBEFLOW_DNS_ZONE_COMPARTMENT_OCID} --name ${OCI_KUBEFLOW_DOMAIN_NAME} --zone-type PRIMARY
   ```
 
   or in the OCI Console
@@ -99,28 +110,22 @@ This method uses the OCI DNS as a DNS provider.
 
 - Important! Note the URIs for the nameservers and set at least 2 of the 4 nameserver names as NS records at your domain name provider.
 
-- Run the script to setup letsencrypt overlays:
-
-  ```bash
-  . ./kubeflow.env
-  ./setup_letsencrypt.sh
-  ```
-
 - To use the Instance Principal auth for the DNS webhook, the cluster nodes need to have permission to alter DNS records. This requires a Dynamic Group targetting the nodes of the cluster, and a policy for this Dynamic Group:
 
-  ```
+  ```bash
   Allow dynamic-group <kubeflow_cluster_nodes> to manage dns in compartment <dns_zone_compartment_name> 
   ```
+
   TODO: This is pretty loose, and can be restricted
 
   The alternative is to provide a Secret named `oci-profile` in the `cert-manager` namespace, following these instructions:
   [https://github.com/streamnsight/cert-manager-webhook-oci#credentials](https://github.com/streamnsight/cert-manager-webhook-oci#credentials)
 
-- Deploy the stack (!!! Make sure to configure the other add-ons before doing so)
-
 ##### Post Deployment Setup
 
-Come back to this step after deploying the stack.
+The `./okf deploy` command will update the DNS records, but may fail if you do ot have the required permissions to manage DNS Zone.
+
+If it fails, after deploying the stack, manual setup consists of:
 
 - Set the Public IP from the load balancer as a A record on the OCI DNS Zone.
 
@@ -130,9 +135,9 @@ Come back to this step after deploying the stack.
   . ./kubeflow.env
   DOMAIN_IP=$(kubectl get service istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   # Set the A record pointing to the Load Balancer IP
-  oci dns record rrset update --force --domain ${DOMAIN_NAME} --zone-name-or-id ${DOMAIN_NAME} --rtype 'A' --items "[{\"domain\":\"${DOMAIN_NAME}\", \"rdata\":\"${DOMAIN_IP}\", \"rtype\":\"A\",\"ttl\":300}]"
+  oci dns record rrset update --force --domain ${OCI_KUBEFLOW_DOMAIN_NAME} --zone-name-or-id ${OCI_KUBEFLOW_DOMAIN_NAME} --rtype 'A' --items "[{\"domain\":\"${OCI_KUBEFLOW_DOMAIN_NAME}\", \"rdata\":\"${DOMAIN_IP}\", \"rtype\":\"A\",\"ttl\":300}]"
   # Set the CNAME record pointing wildcard subdomains to the root domain
-  oci dns record rrset update --force --domain "*.${DOMAIN_NAME}" --zone-name-or-id ${DOMAIN_NAME} --rtype 'CNAME' --items "[{\"domain\":\"*.${DOMAIN_NAME}\", \"rdata\":\"${DOMAIN_NAME}\", \"rtype\":\"CNAME\",\"ttl\":300}]"
+  oci dns record rrset update --force --domain "*.${OCI_KUBEFLOW_DOMAIN_NAME}" --zone-name-or-id ${OCI_KUBEFLOW_DOMAIN_NAME} --rtype 'CNAME' --items "[{\"domain\":\"*.${OCI_KUBEFLOW_DOMAIN_NAME}\", \"rdata\":\"${OCI_KUBEFLOW_DOMAIN_NAME}\", \"rtype\":\"CNAME\",\"ttl\":300}]"
   ```
 
   Using the OCI Console
@@ -154,184 +159,128 @@ To check if DNS is resolving, use a tool like [https://mxtoolbox.com/SuperTool.a
 
 ### IDCS Config
 
-- From the OCI Console, go to Identity & Security -> Identity -> Federation
-- Click the OracleIdentityCloudService provider
-- Click the Oracle Identity Cloud Service Console URL to get to the IDCS admin console (!!! admin rights to the IDCS console is required to perform this step. Ask you ID admin to do this if you do not have access)
-  Note: Any IDCS instance you manage can be used. It does not have to be the one attached to the tenancy.
-- Create an App in IDCS (type: Confidential Application).
-- Set a name like KubeFlow or something identifying the usage. Click Next
-- Click Configure this App as a client now.
-- Check the checkbox in front of `Client Credentials` and `Authorization Code` grant types.
-- Provide a Redirect URL. Using Dex, it will be `https://<domain_name>/dex/callback`
-- Click Next, Next and Finish.
-- Take note of the Client ID and Client Secret and input them in the `kubeflow.env` file.
-- The IDCS_URL is the full domain name of the idcs instance url of the type: `https://idcs-<xxx>.identity.oraclecloud.com` (without trailing slash)
-- Click Activate to activate the application.
+- Create an IDCS application and pupulate the `OCI_KUBEFLOW_IDCS_CLIENT_ID`, `OCI_KUBEFLOW_IDCS_CLIENT_SECRET`, and `OCI_KUBEFLOW_IDCS_URL` values in the `kubeflow.env` environment variables file.
 
-- Edit the issuer URL in IDCS left-side menu -> Security -> OAuth -> Issuer: Enter the same value as the IDCS_URL (without trailing slash)
+See details on [creating the IDCS application](./docs/idcs.md).
 
-- In IDCS left-side menu -> Settings -> Default Settings, make sure the Access Signing Certificate option is turned ON.
-
-  See [https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-settings.html](https://docs.oracle.com/en/cloud/paas/identity-cloud/uaids/configure-oauth-settings.html) for more details.
-
-- Run the following to generate the config files:
-
-    ```bash
-    . ./kubeflow.env
-    ./setup_idcs.sh
-    ```
-
-To troubleshoot issues, after deployment, check the logs of the `authservice-0` pod in namespace `auth` as well as the `dex` pod in namespace `istio-system`
-
-#### Users
+#### IDCS Users
 
 If you deploy IDCS, users can sign in automatically with Single Sign-On, however their user will not exist in KubeFlow and they will not be able to do anything.
 
-For each IDCS authorized user, you will need to create a user profile like the following:
-
-```yaml
-apiVersion: kubeflow.org/v1beta1
-kind: Profile
-metadata:
-  name: <user namespace identifier>
-spec:
-  owner:
-    kind: User
-    name: <IDCS user email>
-```
-
-User namespace identifier can be anything. The kubeflow default naming convention is to use `kubeflow-`<email with . and @ replaced by -)>
-
-After deployment, use the `./create_user.sh` script to create a user profile and apply it automatically.
+Once KubeFlow is deployed, follow instructions to [create users](./docs/user-profiles.md).
 
 ### MySQL external Database
 
-To configure a MySQL as a Service instance for KubeFlow:
+- Deploy a Managed MySQL Database instance on OCI, making sure a `hostname` is defined during creation.
 
-- Create a MySQL DBSystem instance with the OCI Console.
-  - Place the DB in a private subnet reachable by the Kubernetes Cluster nodes (either in the same subnet, or a different subnet in the same VCN).
-  - **!!! Important**: Click Show Advanced Options, click the Networking tab, and set a hostname for the database (like `mysql`). This is required to get a FQDN for the service, needed for setup.
+  See details and important notes for creation in [Set Up a Managed MySQL Database for KubeFlow](./docs/mysql.md)
 
-- If you placed the MySQL service in a different subnet than the node subnet, add a Security list to configure access from the pods (that uses a different CIDR range) to the CIDR of the MySQL instance, for TCP port 3306.
+- Create the KubeFlow user.
 
-- Once the DB is provisioned:
-  - Get the FQDN URI for the database and enter it in the `kubeflow.env` file for `DBHOST`.
+  If you are not the system admin, follow instructions in [Set Up a Managed MySQL Database for KubeFlow](./docs/mysql.md) and have your sysadmin create the KubeFlow user.
 
-- Create a `kubeflow` user.
-  This is important as some of the KubeFlow components require the password to be created with the `mysql_native_password` plugin, which is not the default on the MySQL service.
-
-  You need to run the command below within the cluster, to get access to the MySQL instance there. For this, use the mysql.Pod.yaml to spin up a MySQL client Pod:
+  If you have the sys/admin username and password, use:
 
   ```bash
-  kubectl apply -f mysql.Pod.yaml
+  ./okf mysql create-kf-user
   ```
 
-  Then get inside the pod with:
+  and follow prompts to create the KubeFlow user, or run in one line with:
 
   ```bash
-  kubectl exec -it mysql-temp -- /bin/bash
+  ./okf mysql create-kf-user -u kubeflow -p <kubeflow_user_password> -U ADMIN -P <sysadmin_password> -y
   ```
 
-  Inside the Pod, run the command:
+- Enter the environment variables in the `kubeflow.env` file.
 
-  ```bash
-  mysql -u <system_user> -p -h <db_hostname> -e "create user if not exists kubeflow@'%' identified with mysql_native_password by '<kubeflow_user_password>' default role administrator;"
-  ```
-  providing the system user name (default is ADMIN when creating the DB System), the db hostname, and the kubeflow_user_password of your choice.
-
-  At the prompt, enter the root/system user password you provided at creation of the DB system.
-
-  You can verify the user was created by running:
-
-  ```bash
-  mysql -u <system_user> -p -h <db_hostname> -e "select User, plugin from mysql.user;"
-  ```
-
-  You should see an entry for:
-  ```bash
-  | kubeflow         | mysql_native_password |
-  ```
-
-  You can then exit the pod with `exit` and delete it with
-  ```bash
-  kubectl delete -f mysql.Pod.yaml
-  ```
-
-- Enter the `kubeflow_user_password` you chose in the `kubeflow.env` file for `DBPASS`.
-- `DBUSER` should be `kubeflow` as created above.
-
-- Run the script `setup_mysql.sh`
-
-  ```bash
-  . ./kubeflow.env
-  ./setup_mysql.sh
-  ```
+  - `OCI_KUBEFLOW_MYSQL_PASSWORD` should be the `<kubeflow_user_password>` you chose when creating the KubeFlow user.
+  - `OCI_KUBEFLOW_MYSQL_USER` should be `kubeflow` as created above.
+  - `OCI_KUBEFLOW_MYSQL_HOST` should be the FQDN URI for the database found in the database system details.
 
 ### Setup Object Storage Backend
 
 To use OCI Object Storage as storage for Pipelines and Pipeline Artifacts:
 
-- Under your user icon (top right in OCI Console), go to Tenancy, and gather the `Object Storage Namespace` name of your tenancy, and the `region` code of your home region (for example us-ashburn-1) from the tenancy details.
-  Note: This ONLY works with the home region at this point, because Minio Gateway does not support other regions for S3 compatible gateways.
+- Under your user icon (top right in OCI Console), go to Tenancy, and gather the `Object Storage Namespace` name of your tenancy, and the `region` code of your home region (for example `us-ashburn-1`) from the tenancy details.
+  Note: Object Storage integration currently ONLY works with the **home region**, because Minio Gateway does not support other regions for S3 compatible gateways.
   
-  Set the values for `REGION` and `OSNAMESPACE` in the `kubeflow.env` file.
+  Set the values for `OCI_KUBEFLOW_OBJECT_STORAGE_REGION` and `OCI_KUBEFLOW_OBJECT_STORAGE_NAMESPACE` in the `kubeflow.env` file.
 
-- Create a bucket at the root of the tenancy (or in the compartment defined as the root for the S3 Compatibility API, which defaults to the root of the tenancy) for example `<username>-kubeflow-metadata`. Set the bucket name as `BUCKET` in the `kubeflow.env` file
+- Create a bucket at the root of the tenancy (or in the compartment defined as the root for the S3 Compatibility API, which defaults to the root of the tenancy) for example `<username>-kubeflow-metadata`. Set the bucket name as `OCI_KUBEFLOW_OBJECT_STORAGE_BUCKET` in the `kubeflow.env` file
 
-- Create a Customer Secret Key under your user (or a user created for this purpose), which will provide you with an `Access Key` and a `Secret Access Key`. Take note of these credentials and set then as `ACCESSKEY` and `SECRETKEY` in the `kubeflow.env` file
+- Create a **Customer Secret Key** under your user (or a user created for this purpose), which will provide you with an `Access Key` and a `Secret Access Key`. Take note of these credentials and set then as `OCI_KUBEFLOW_OBJECT_STORAGE_ACCESS_KEY` and `OCI_KUBEFLOW_OBJECT_STORAGE_SECRET_KEY` respectively in the `kubeflow.env` file
 
-- Run the `setup_object_storage.sh` script
+### Configure Add-ons Manifests
 
-  ```bash
-  . ./kubeflow.env
-  ./setup_object_storage.sh
+- In the `deployments/overlays/kustomization.yaml` file, comment out the add-ons you do not wish to use.
+
+  The defaults are:
+
+  ```yaml
+  - ../add-ons/letsencrypt-dns01
+  - ../add-ons/idcs
+  - ../add-ons/external-mysql
+  - ../add-ons/oci-object-storage
   ```
 
-### Deploy
+  Note that you need the `https` adds OR `letsencrypt` add-on to enable the `idcs` add-on. Without `letsencrypt` use the Load Balancer Public IP address in place of the domain name.
 
-In the `deployments/overlays/kustomization.yaml` file, comment out the add-ons you did not configure. 
+- Configure add-ons with:
 
-The defaults are:
+  ```bash
+  ./okf config
+  ```
 
-```yaml
-- ../add-ons/letsencrypt-dns01
-- ../add-ons/idcs
-- ../add-ons/external-mysql
-- ../add-ons/oci-object-storage
-```
+  It will use the default `kubeflow.env` file to configure add-ons. TO use an alternative environment variables file, us the `-e <env_file>` flag.
 
-Note that you need the `https` adds OR `letsencrypt` add-on to enable the `idcs` add-on. Without `letsencrypt` use the Load Balancer Public IP address in place of the domain name.
+### Build and Deploy KubeFlow Manifests
 
-To deploy, run the comand:
+The easiest way to deploy, is using the CLI with:
 
-    ```bash
-    while ! kustomize build deployments/overlays | kubectl apply -f - ; do sleep 1; done;
-    ```
+  ```bash
+  ./okf deploy
+  ```
+
+It will take care of post-deploy tasks, like setting up DNS entries with the load balancer public IP.
+
+To deploy manually, after running `./oke config`, you can also run the command:
+
+  ```bash
+  while ! kustomize build deployments/overlays | kubectl apply -f - ; do sleep 1; done;
+  ```
 
 Be sure to get back to the post-deployment DNS setup after the manifests are deployed.
+
+When using the while loop, the istio side-car containers sometimes fail to mount. In the case where you see TLS errors in the UI, it is likely you need to run a rollout restart of the pods in the kubeflow namespace.
+
+  ```bash
+  kubectl rollout restart deployments -n kubeflow
+  # for IDCS config change, also run
+  kubectl rollout restart deployments -n auth
+  kubectl rollout restart deployments -n knative-serving
+  ```
+
+### Create Users
 
 Be sure to create the user profile for your IDCS email. The KubeFlow UI should show an active namespace.
 
 Note:
 
-If deployment fails due to a wrong configuration, update the `kubeflow.env`, source it, and re-run the related script(s). Then re-run the kustomize build and kubectl apply commands
+If deployment fails due to a wrong configuration, update the `kubeflow.env`, and re-run the deploy command.
 
-After this, you may still need to restart the deployments with:
 
-```bash
-kubectl rollout restart deployments -n kubeflow
-# for IDCS config change, also run
-kubectl rollout restart deployments -n auth
-kubectl rollout restart deployments -n knative-serving
-```
+## Troubleshooting
 
 If you are having issues with meta data, pipelines and artifacts, you might need to reset the database/cache.
 
 Use the following script that clears the MySQL database and rollout restarts all deployments:
 
 ```bash
-./reset_db.sh
+./okf mysql reset-db
 ```
+
+**Important:** This command will clear all caches and pipelines for all users, and is a pretty drastic measure recommended if issues happen during setup. Run this with caution.
+
 
 ## References:
 
@@ -351,19 +300,3 @@ Model Serving
 ### Running the Examples
 
 See the /example folder for examples to run KubeFlow pipelines or serve a model for inference.
-
-### Inference with Kserve
-
-```bash
-COOKIE_VALUE=xxxxx...
-MODEL_NAME=mnist-e2e
-NAMESPACE=ns
-DOMAIN_NAME=example.com
-MODEL_ENDPOINT=${MODEL_NAME}.${NAMESPACE}.${DOMAIN_NAME}
-
-curl -v -L -X POST -d @./input.json {} -H "Cookie: authservice_session=${COOKIE_VALUE}" -H "Host: ${MODEL_ENDPOINT}" https://${MODEL_ENDPOINT}/v1/models/${MODEL_NAME}:predict
-```
-
-```json
-
-```

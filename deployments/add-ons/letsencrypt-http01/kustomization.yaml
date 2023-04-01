@@ -1,7 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
+commonAnnotations:
+  add-on.kubeflow.oraclecloud.com/letsencrypt-http01: 1.0.0
+
 components:
-- ../../../oci/common/istio-1-14/kubeflow-istio-resources/overlays/letsencrypt-http01
+# let's encrypt domain / subdomain cert generation with Lets Encrypt using HTTP01 challenge
+- ../../../oci/common/istio/kubeflow-istio-resources/overlays/letsencrypt-http01
+# overlay for auth-service to white list the /.well-known/ path where HTTP01 challenges are served
 - ../../../oci/common/oidc-authservice/overlays/letsencrypt
 - ../../../oci/apps/kserve/domain
+# serving subdomain certs for KServe
+- ../../../oci/apps/kserve/net-certmanager-http01

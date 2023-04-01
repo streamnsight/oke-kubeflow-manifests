@@ -66,10 +66,10 @@ Copy the value of the cookie.
 then run:
 
 ```bash
-export COOKIE_VALUE=MTY2NDkwNjkzN3xOd3dBTkRWRlRWRkdNa1pZUWtsUFFsSkhWRmMzVGpkRFExTmFTRWRUUms5Q04wMU1WalJQUkU4M05qSlBVa2RUU3pRMVRsRkxVMEU9fO-F8FEGEuzz3rLPXalgkqCd8VzqTyYYrvPRJj_QkUup
+export COOKIE_VALUE=xxxxxxxxxxxdNa1pZUWtsUFFsSkhWRmMzVGpkRFExTmFTRWRUUms5Q04wMU1WalJQUkU4M05qSlBVa2RUU3pRMVRsRkxVMEU9fO-F8FEGEuzz3rLPXalgkzzzzzzzzz
 export MODEL_NAME=sklearn-irisv2
-export NAMESPACE=epleroy
-export DOMAIN_NAME=ocikubeflow160.ml
+export NAMESPACE=<yournamespace>
+export DOMAIN_NAME=<your_domain_name>
 export MODEL_ENDPOINT="${MODEL_NAME}.${NAMESPACE}.${DOMAIN_NAME}"
 
 curl -v -L -X POST -d @./inputs.json -H "Content-Type: application/json" -H "Cookie: authservice_session=${COOKIE_VALUE}" -H "Host: ${MODEL_ENDPOINT}" https://$MODEL_ENDPOINT/v2/models/$MODEL_NAME/infer

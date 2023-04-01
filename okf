@@ -1,0 +1,6 @@
+#! python
+
+from cli.src.okf import Main
+
+if __name__ == '__main__':
+    Main()

@@ -9,7 +9,7 @@ configMapGenerator:
 - name: dex-idcs
   namespace: auth
   files:
-    - config.yaml=idcs-config.yaml
+    - config.yaml=config.yaml
 
 generatorOptions:
   disableNameSuffixHash: true

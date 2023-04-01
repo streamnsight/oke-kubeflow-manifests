@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-ingressgateway
+  namespace: istio-system
+  annotations:
+    # Use nlb, which is part of the always free tier
+    oci.oraclecloud.com/load-balancer-type: "nlb"
+    service.beta.kubernetes.io/oci-load-balancer-backend-protocol: TCP
+    # To use a Flex shape Load Balancer, use the following:
+    # oci.oraclecloud.com/load-balancer-type: "lb"
+    # service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    # service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    # service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "400"
+spec:
+  type: LoadBalancer

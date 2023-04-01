@@ -1,32 +1,34 @@
 #!/bin/bash
 
-if [[ -z "${IDCS_URL}" ]];
+. ./kubeflow.env
+
+if [[ -z "${OCI_KUBEFLOW_IDCS_URL}" ]];
 then 
-    read -p "IDCS URL: " IDCS_URL
+    read -pr "IDCS URL: " OCI_KUBEFLOW_IDCS_URL
 fi;
 
-if [[ -z "${IDCS_CLIENT_ID}" ]];
+if [[ -z "${OCI_KUBEFLOW_IDCS_CLIENT_ID}" ]];
 then
-    read -p "IDCS Client ID: " IDCS_CLIENT_ID
+    read -pr "IDCS Client ID: " OCI_KUBEFLOW_IDCS_CLIENT_ID
 fi;
 
-if [[ -z "${IDCS_CLIENT_SECRET}" ]];
+if [[ -z "${OCI_KUBEFLOW_IDCS_CLIENT_SECRET}" ]];
 then
-    read -p "IDCS Client Secret: " IDCS_CLIENT_SECRET
+    read -pr "IDCS Client Secret: " OCI_KUBEFLOW_IDCS_CLIENT_SECRET
 fi;
 
-if [[ -z "${DOMAIN_NAME}" ]];
+if [[ -z "${OCI_KUBEFLOW_DOMAIN_NAME}" ]];
 then
-    read -p "Domain Name (Defaults to Load Balancer IP if blank): " DOMAIN_NAME
+    read -pr "Domain Name (Defaults to Load Balancer IP if blank): " OCI_KUBEFLOW_DOMAIN_NAME
 fi;
 
-if [[ -z ${DOMAIN_NAME} ]]; 
+if [[ -z ${OCI_KUBEFLOW_DOMAIN_NAME} ]]; 
 then
     LBIP=$(kubectl get svc istio-ingressgateway -n istio-system -o=jsonpath="{.status.loadBalancer.ingress[0].ip}")
 fi
 
-ISSUER="https://${DOMAIN_NAME:-${LBIP}}/dex"
+export OCI_KUBEFLOW_ISSUER="https://${OCI_KUBEFLOW_DOMAIN_NAME:-${LBIP}}/dex"
 
-eval "echo \"$(cat ./oci/common/dex/overlays/idcs/config.yaml.tmpl)\"" > ./oci/common/dex/overlays/idcs/idcs-config.yaml
-echo "OIDC_PROVIDER=${ISSUER}" > ./oci/common/oidc-authservice/overlays/idcs/params.env
+eval "echo \"$(cat ./oci/common/dex/overlays/idcs/config.tmpl.yaml)\"" > ./oci/common/dex/overlays/idcs/config.yaml
+eval "echo \"$(cat ./oci/common/oidc-authservice/overlays/idcs/params.tmpl.env)\"" > ./oci/common/oidc-authservice/overlays/idcs/params.env
 

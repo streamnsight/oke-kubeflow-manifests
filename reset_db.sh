@@ -1,5 +1,6 @@
 #!/bin/bash
 
-. ./kubeflow.env
-kubectl exec -it mysql-temp -n default -- mysql -u ${DBUSER} -p${DBPASS} -h mysql -e "drop database mlpipeline; drop database metadb; drop database cachedb;"
-kubectl rollout restart deployments -n kubeflow
+kubectl apply -f reset-db.Job.yaml \
+&& kubectl wait --for=condition=Complete --timeout=30s -n kubeflow job/reset-db \
+&& kubectl logs job/reset-db \
+&& kubectl rollout restart deployments -n kubeflow
