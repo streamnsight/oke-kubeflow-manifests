@@ -176,14 +176,16 @@ class DependenciesValidator():
             return False
 
     def validate_kustomize(self):
+        major_min = self.versions.get('KUSTOMIZE_MIN_VERSION_MAJOR')
+        minor_min = self.versions.get('KUSTOMIZE_MIN_VERSION_MINOR')
         try:
             output = subprocess.check_output('kustomize version --short', shell=True)
             match = re.search(r'(\d+\.\d+\.\d+)', output.decode('utf-8'))
             if match:
                 version = match.group(0)
                 major, minor, _ = version.split('.')
-                if not (int(major) >= 3 and int(minor) >= 6):
-                    log.error(f'kustomize v{version} is too old. Setup requires v3.6+')
+                if not (int(major) >= int(major_min) and int(minor) >= int(minor_min)):
+                    log.error(f'kustomize v{version} is too old. Setup requires v{major_min}.{minor_min}+')
                     return False
                 else:
                     log.info(f'kustomize v{version} found.')
@@ -226,6 +228,7 @@ class DependenciesValidator():
                     else:
                         log.error('Kubernetes server version does not match requirements.')
                         return False
+        log.error('Enable to lookup Kubernetes server version. Check that kubectl is configured to connect to an existing cluster.')
         return False
 
 
