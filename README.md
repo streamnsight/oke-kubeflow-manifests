@@ -1,15 +1,16 @@
 # KubeFlow distribution for Oracle Kubernetes Engine (OKE)
 
-**This release is for KubeFlow v1.6**
+**This release is for KubeFlow v1.6.1**
 
 ## Requirements
 
 To deploy, you need:
 
 - OCI Command Line Interface v3.5+
-- kubectl 1.22+
+- kubectl 1.23 - 1.25
 - kustomize v3.7+ (support for Components)
-- A Kubernetes cluster v1.22+
+- A Kubernetes cluster v1.23 - 1.25
+- Kubernetes Node image using Oracle Linux 7.9 (NOT 8.x)
 
 ## Setup
 
