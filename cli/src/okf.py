@@ -19,7 +19,7 @@ KUBEFLOW_VERSION_FILE='kubeflow_version.env'
 variable_specs = {
     'OCI_KUBEFLOW_DOMAIN_NAME': {
         'example': 'mydomain.com',
-        'pattern': r'[a-z0-9.]+'
+        'pattern': r'[a-z0-9.]+',
     },
     'OCI_KUBEFLOW_DOMAIN_ADMIN_EMAIL': {
         'example': 'admin@mydomain.com',
@@ -31,31 +31,39 @@ variable_specs = {
     },
     'OCI_KUBEFLOW_IDCS_URL': {
         'example': 'https://idcs-xxxxxx.identity.oraclecloud.com',
-        'pattern': r'https://idcs-.*\.identity.oraclecloud.com$'
+        'pattern': r'https://idcs-.*\.identity.oraclecloud.com$',
+        'help': 'refer to docs/idcs.md to setup an IDCS Application for KubeFlow'
     },
     'OCI_KUBEFLOW_IDCS_CLIENT_ID': {
         'example': 'e140ade85eec47748df546d3ba6aeca8',
-        'pattern': r'[a-f0-9]{32}'
+        'pattern': r'[a-f0-9]{32}',
+        'help': 'refer to docs/idcs.md to setup an IDCS Application for KubeFlow'
+
     },
     'OCI_KUBEFLOW_IDCS_CLIENT_SECRET': {
         'example': '0943f5de-eae2-4a68-c9db-d5380fe933b4',
-        'pattern': r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}'
+        'pattern': r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}',
+        'help': 'refer to docs/idcs.md to setup an IDCS Application for KubeFlow'
     },
     'OCI_KUBEFLOW_MYSQL_USER': {
         'example': 'kubeflow',
-        'pattern': r'[a-zA-Z0-9_]+'
+        'pattern': r'[a-zA-Z0-9_]+',
+        'help': 'refer to docs/mysql.md to deploy a MySQL DB for KubeFlow. Important: a DNS hostname must be provided.'
     },
     'OCI_KUBEFLOW_MYSQL_PASSWORD': {
         'example': 'wIw_MqkrPrT9LuZcIhot[]1EPd7w7ll',
-        'pattern': r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!#$%&'()*+/:;<=>?@_`{|}~,[\]\-\.])[A-Za-z\d!#$%&'()*+/:;<=>?@_`{|}~,[\]\-\.]{8,32}$"
+        'pattern': r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!#$%&'()*+/:;<=>?@_`{|}~,[\]\-\.])[A-Za-z\d!#$%&'()*+/:;<=>?@_`{|}~,[\]\-\.]{8,32}$",
+        'help': 'refer to docs/mysql.md to deploy a MySQL DB for KubeFlow. Important: a DNS hostname must be provided.'
     },
     'OCI_KUBEFLOW_MYSQL_HOST': {
         'example': '',
-        'pattern': r'.*\.oraclevcn.com'
+        'pattern': r'.*\.oraclevcn.com',
+        'help': 'refer to docs/mysql.md to deploy a MySQL DB for KubeFlow. Important: a DNS hostname must be provided.'        
     },
     'OCI_KUBEFLOW_MYSQL_PORT': {
         'example': '3306',
-        'pattern': r'3306'
+        'pattern': r'3306',
+        'help': 'refer to docs/mysql.md to deploy a MySQL DB for KubeFlow. '
     },
     'OCI_KUBEFLOW_OBJECT_STORAGE_REGION': {
         'example': 'us-ashburn-1',
@@ -115,6 +123,8 @@ formatter = logging.Formatter('[%(asctime)s][%(levelname)-7s] %(message)s', "%y-
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(formatter)
 log.addHandler(handler)
+if os.environ.get('DEBUG', False):
+    log.setLevel(logging.DEBUG)
 
 no_prompts = False
 env = None
@@ -178,14 +188,16 @@ class DependenciesValidator():
     def validate_kustomize(self):
         major_min = self.versions.get('KUSTOMIZE_MIN_VERSION_MAJOR')
         minor_min = self.versions.get('KUSTOMIZE_MIN_VERSION_MINOR')
+        major_max = self.versions.get('KUSTOMIZE_MAX_VERSION_MAJOR')
+        minor_max = self.versions.get('KUSTOMIZE_MAX_VERSION_MINOR')
         try:
             output = subprocess.check_output('kustomize version --short', shell=True)
             match = re.search(r'(\d+\.\d+\.\d+)', output.decode('utf-8'))
             if match:
                 version = match.group(0)
                 major, minor, _ = version.split('.')
-                if not (int(major) >= int(major_min) and int(minor) >= int(minor_min)):
-                    log.error(f'kustomize v{version} is too old. Setup requires v{major_min}.{minor_min}+')
+                if not (major_min <= major <= major_max) and (minor_min <= minor <= minor_max):
+                    log.error(f'kustomize v{version} found. Requires v{major_min}.{minor_min} to v{major_max}.{minor_max}')
                     return False
                 else:
                     log.info(f'kustomize v{version} found.')
@@ -206,9 +218,9 @@ class DependenciesValidator():
     def validate_k8s_version(self):
         kf_version = self.versions.get('KUBEFLOW_RELEASE_VERSION')
         major_min = self.versions.get('KUBEFLOW_MIN_K8S_VERSION_MAJOR')
-        major_max = self.versions.get('KUBEFLOW_MAX_K8S_VERSION_MAJOR')
-        minor_min = self.versions.get('KUBEFLOW_MIN_K8S_VERSION_MINOR')
-        minor_max = self.versions.get('KUBEFLOW_MAX_K8S_VERSION_MINOR')
+        major_max = self.versions.get('KUBEFLOW_MAX_K8S_VERSION_MAJOR', '99')
+        minor_min = self.versions.get('KUBEFLOW_MIN_K8S_VERSION_MINOR',)
+        minor_max = self.versions.get('KUBEFLOW_MAX_K8S_VERSION_MINOR', '99')
         log.info(f'Validating Kubernetes server version for KubeFlow')
         log.info(f'KubeFlow {kf_version} requires Kubernetes server v{major_min}.{minor_min} to v{major_max}.{minor_max}')
         cmd = 'kubectl version --short'
@@ -350,6 +362,8 @@ class ManifestsManager():
             rendered_path = re.sub(r'.tmpl', '', template_file).split('/')
             rendered_path_short = os.path.join(*rendered_path)
             rendered_path = os.path.join(cwd, *rendered_path)
+        else:
+            rendered_path_short = os.path.join(rendered_path)
         log.info(f'Created file: {rendered_path_short}')
         template = None
         with open(os.path.join(cwd, *template_path), 'r') as f:
@@ -403,7 +417,8 @@ class ManifestsManager():
 
 class AddOnManager():
     add_ons = None
-    deferred_task = []
+    deferred_tasks = []
+    final_tasks = []
 
     def __init__(self, env_manager):
         self.env_manager = env_manager
@@ -451,7 +466,7 @@ class AddOnManager():
             if add_on == 'idcs':
                 deferred = self.setup_idcs()
                 if deferred:
-                    self.deferred_tasks.append((self.setup_idcs, []))
+                    self.deferred_tasks.append((self.setup_idcs, {}))
             elif add_on == 'letsencrypt-http01':
                 self.setup_letsencrypt_http01()
             elif add_on == 'letsencrypt-dns01':
@@ -459,13 +474,15 @@ class AddOnManager():
                 dns_zone_compartment_id = self.env_manager.env.get('OCI_KUBEFLOW_DNS_ZONE_COMPARTMENT_OCID')
                 InfrastructureManager.setup_dns_zone(domain_name, dns_zone_compartment_id)
                 self.setup_letsencrypt_dns01()
-                self.deferred_tasks.append((InfrastructureManager.setup_dns_records, domain_name))
+                self.deferred_tasks.append((InfrastructureManager.setup_dns_records, {'domain_name': domain_name}))
+                self.final_tasks.append((InfrastructureManager.get_dns_nameservers, {'domain_name': domain_name}))
             elif add_on == 'oci-object-storage':
                 self.setup_oci_object_storage()
             elif add_on == 'external-mysql':
                 self.setup_mysql()
         log.info('Add-ons are configured')
-
+        log.debug(f'Deferred tasks: {self.deferred_tasks}')
+        self.final_tasks.append((InfrastructureManager.get_lb_ip, {'verbose': True}))
 
     def setup_idcs(self):
         domain_name = self.env_manager.env.get('OCI_KUBEFLOW_DOMAIN_NAME', '')
@@ -521,13 +538,22 @@ class AddOnManager():
 class InfrastructureManager():
 
     @classmethod
-    def get_lb_ip(cls):
+    def get_lb_ip(cls, verbose=False):
         # Get load balancer IP
         cmd = 'kubectl get svc istio-ingressgateway -n istio-system -o=jsonpath="{.status.loadBalancer.ingress[0].ip}"'
-        try:
-            lb_ip=subprocess.check_output(cmd, shell=True).decode('utf-8')
-        except subprocess.CalledProcessError as e:
-            lb_ip=''
+        retry = 5
+        while retry > 0:
+            try:
+                lb_ip=subprocess.check_output(cmd, shell=True).decode('utf-8')
+            except subprocess.CalledProcessError as e:
+                lb_ip=''
+            if lb_ip == '':
+                retry -= 1
+                sleep(30)
+            else:
+                retry = 0
+        if verbose:
+            log.info(f'The load balancer IP is: {lb_ip} . Make sure to configure the A record with this IP at your domain name registrar.')
         return lb_ip
 
     @classmethod
@@ -541,7 +567,7 @@ class InfrastructureManager():
                 subprocess.check_output(f'oci dns zone create --compartment-id {dns_zone_compartment_id} --name {domain_name} --zone-type PRIMARY', shell=True)
                 log.info(f'Please enter the nameservers above at the provider for the domain {domain_name}')
             except subprocess.CalledProcessError:
-                log.error('Unable to create the DNS Zone. Please try to create it manually.')
+                log.error('Unable to create the DNS Zone. You may not have permission. Please try to create it manually.')
                 exit(1)
 
     @classmethod
@@ -562,7 +588,7 @@ class InfrastructureManager():
             cmd = f'oci dns record rrset update --force --domain {domain_name} --zone-name-or-id {domain_name} --rtype "A" --items \'[{{"domain":"{domain_name}", "rdata":"{lb_ip}", "rtype": "A", "ttl":300}}]\''
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
-            log.error('Unable to set load balancer IP on DNS. Please try to set it up manually.')
+            log.error('Unable to set load balancer IP on DNS. You may not have permission. Please try to set it up manually.')
             exit(1)
         try:
             log.info(f'DNS setup: set CNAME record for wildcard sub-domain *.{domain_name}')
@@ -570,7 +596,16 @@ class InfrastructureManager():
             cmd = f'oci dns record rrset update --force --domain "*.{domain_name}" --zone-name-or-id {domain_name} --rtype "CNAME" --items \'[{{"domain": "*.{domain_name}", "rdata": "{domain_name}", "rtype": "CNAME", "ttl":300}}]\''
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
-            log.error('Unable to set CNAME record on DNS. Please try to set it up manually.')
+            log.error('Unable to set CNAME record on DNS. You may not have permission. Please try to set it up manually.')
+            exit(1)
+
+    @classmethod
+    def get_dns_nameservers(cls, domain_name):
+        try:
+            cmd = f'oci dns zone get --zone-name-or-id {domain_name}'
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError:
+            log.error('Unable to get DNS Zone nameserver list. You may not have permission. Please try to set it up manually.')
             exit(1)
 
     @classmethod        
@@ -607,7 +642,7 @@ class UserManager():
         # check is namespace exists
         cmd = f'kubectl get ns {username}'.split()
         try:
-            Popen(cmd, shell=False, stdout=PIPE)
+            subprocess.check_output(cmd, shell=False)
             log.error(f'The username / namespace "{username}" already exists.')
             exit(1)
         except subprocess.CalledProcessError:
@@ -636,19 +671,20 @@ class MySQLManager():
     def check_kf_user_login(self):
         user = self.env_manager.env.get('OCI_KUBEFLOW_MYSQL_USER')
         password = self.env_manager.env.get('OCI_KUBEFLOW_MYSQL_PASSWORD')
+        mysql_host = self.env_manager.env.get('OCI_KUBEFLOW_MYSQL_HOST')
         overrides = '{ "apiVersion": "v1", "metadata": { "annotations": { "sidecar.istio.io/inject": "false" } } }'
         sql = f'"select 1;"'
         cmd = f'kubectl run mysql-set-kubeflow-user --rm -it --image=mysql:8.0.26 --restart=Never \
-                --overrides=\'{overrides}\' -- mysql -u "{user}" -p"{password}" -h mysql \
+                --overrides=\'{overrides}\' -- mysql -u "{user}" -p"{password}" -h {mysql_host} \
                 -e {sql} >/dev/null'
         log.debug(cmd.replace(password, '******'))
         return run_shell_cmd(cmd, shell=True, verbose=False) == 0
 
-    def check_kf_user_exists_with_mysql_native_password(self, user, sys_user, sys_password):
+    def check_kf_user_exists_with_mysql_native_password(self, user, sys_user, sys_password, mysql_host):
         overrides = '{ "apiVersion": "v1", "metadata": { "annotations": { "sidecar.istio.io/inject": "false" } } }'
         sql = f'"select User, plugin from mysql.user where user = \'{user}\';"'
         cmd = f'kubectl run mysql-set-kubeflow-user --rm -it --image=mysql:8.0.26 --restart=Never \
-                --overrides=\'{overrides}\' -- mysql -u "{sys_user}" -p"{sys_password}" -h mysql \
+                --overrides=\'{overrides}\' -- mysql -u "{sys_user}" -p"{sys_password}" -h {mysql_host} \
                 -e {sql} | grep "| {user} | mysql_native_password |"'
         log.debug(cmd.replace(sys_password, '******'))
         return run_shell_cmd(cmd, shell=True, verbose=False) == 0
@@ -658,6 +694,7 @@ class MySQLManager():
         password = args.password
         sys_user = args.sys_user
         sys_password = args.sys_password
+        mysql_host = args.mysql_host
         no_prompts = args.no_prompts
         if (password is None or sys_password is None) and no_prompts:
             if password is None:
@@ -686,31 +723,41 @@ class MySQLManager():
             sys_password = input(f'Enter the password for the MySQL system/admin user "{sys_user}": ')
             sys_password = sys_password.strip()
 
+        if not no_prompts:
+            mysql_host = input(f'Enter the MySQL full host name (defaults to "{mysql_host}"): ')
+            if mysql_host.strip() == '':
+                mysql_host = args.mysql_host
+            else:
+                mysql_host = mysql_host.strip()
+
         if no_prompts is False:
             log.warning(f'This command will create a "{user}" user in the MySQL database.')
             log.warning(f'This command will update the environment variable "OCI_KUBEFLOW_MYSQL_USER" in the file "{self.env_manager.env_file}"')
             log.warning(f'This command will update the environment variable "OCI_KUBEFLOW_MYSQL_PASSWORD" in the file "{self.env_manager.env_file}"')
+            log.warning(f'This command will update the environment variable "OCI_KUBEFLOW_MYSQL_HOST" in the file "{self.env_manager.env_file}"')
             log.warning('Would you like to continue? (y/N): ')
             choice = input('> ')
             if choice.lower().strip() != 'y':
                 exit(0)
 
-        if self.check_kf_user_exists_with_mysql_native_password(user, sys_user, sys_password):
+        if self.check_kf_user_exists_with_mysql_native_password(user, sys_user, sys_password, mysql_host):
             log.error(f'User "{user}" already exists')
             exit(1)
 
         overrides = '{ "apiVersion": "v1", "metadata": { "annotations": { "sidecar.istio.io/inject": "false" } } }'
         sql = f'"create user {user}@\'%\' identified with mysql_native_password by \'{password}\' default role administrator;"'
         cmd = f'kubectl run mysql-set-kubeflow-user --rm -it --image=mysql:8.0.26 --restart=Never \
-                --overrides=\'{overrides}\' -- mysql -u "{sys_user}" -p"{sys_password}" -h mysql \
+                --overrides=\'{overrides}\' -- mysql -u "{sys_user}" -p"{sys_password}" -h {mysql_host} \
                 -e {sql}'
         log.debug(cmd.replace(password, '******').replace(sys_password, '******'))
         if run_shell_cmd(cmd, shell=True, verbose=False) == 0:
             self.env_manager.save_variable('OCI_KUBEFLOW_MYSQL_USER', user)
             self.env_manager.save_variable('OCI_KUBEFLOW_MYSQL_PASSWORD', password)
+            self.env_manager.save_variable('OCI_KUBEFLOW_MYSQL_HOST', mysql_host)
         else:
             log.error(f'User "{user}" could not be created. \
-                It may exist already but does not use the "mysql_native_password" plugin. Try deleting the user and re-creating it.')
+                Make sure the Security List in the VCN allow communication to the MySQL DB. \
+                The user may exist already but does not use the "mysql_native_password" plugin. Try deleting the user and re-creating it.')
 
     def reset_db(self):
         cmds = [
@@ -754,7 +801,6 @@ class Configurator():
         self.addon_manager = AddOnManager(self.env_manager)
         self.addon_manager.validate_addons_config()
         self.addon_manager.configure_add_ons()
-
 
 
 class Main():
@@ -826,6 +872,7 @@ Use -o <output file | folder> or use 'okf deploy' to build and deploy without in
         self.mysql_create_kf_user_parser.add_argument('--password', '-p', dest='password', help='user password', default=None)
         self.mysql_create_kf_user_parser.add_argument('--sys-user', '-U', dest='sys_user', help='sys/admin username', default='ADMIN')
         self.mysql_create_kf_user_parser.add_argument('--sys-password', '-P', dest='sys_password', help='sys/admin password', default=None)
+        self.mysql_create_kf_user_parser.add_argument('--mysql-host', '-H', dest='mysql_host', help='mysql host', default=None)
         self.mysql_create_kf_user_parser.add_argument('--yes', '-y', dest='no_prompts', help='no prompts', action='store_true')
         self.mysql_create_kf_user_parser.set_defaults(func=self.mysql_create_kf_user)
 
@@ -872,11 +919,16 @@ Use -o <output file | folder> or use 'okf deploy' to build and deploy without in
                 log.warning('use "./okf mysql create-kf-user" to create the KubeFlow user, or check it was properly created and credentials defined in the env_file are valid.')
                 exit(1)
         ManifestsManager.kustomize_and_apply()
-        for func, func_args in cfg.deferred_tasks:
-            func(func_args)
+        log.debug(f'calling deferred tasks {cfg.deferred_tasks}')
+        for func, func_args in cfg.addon_manager.deferred_tasks:
+            log.debug(f"calling {func} with {func_args}")
+            func(*func_args)
         log.debug(args.no_restart)
         if not args.no_restart:
             InfrastructureManager.rollout_restart()
+        for func, func_args in cfg.addon_manager.final_tasks:
+            log.debug(f"calling {func} with {func_args}")
+            func(*func_args)
 
     def user(self, args):
         log.debug(args)
@@ -903,7 +955,6 @@ Use -o <output file | folder> or use 'okf deploy' to build and deploy without in
     def mysql_reset_db(self, args):
         mysql_manager = MySQLManager()
         mysql_manager.reset_db()
-
 
 
 if __name__ == '__main__':
