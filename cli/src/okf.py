@@ -188,14 +188,16 @@ class DependenciesValidator():
     def validate_kustomize(self):
         major_min = self.versions.get('KUSTOMIZE_MIN_VERSION_MAJOR')
         minor_min = self.versions.get('KUSTOMIZE_MIN_VERSION_MINOR')
+        major_max = self.versions.get('KUSTOMIZE_MAX_VERSION_MAJOR', "99")
+        minor_max = self.versions.get('KUSTOMIZE_MAX_VERSION_MINOR', "99")
         try:
             output = subprocess.check_output('kustomize version --short', shell=True)
             match = re.search(r'(\d+\.\d+\.\d+)', output.decode('utf-8'))
             if match:
                 version = match.group(0)
                 major, minor, _ = version.split('.')
-                if not (int(major) >= int(major_min) and int(minor) >= int(minor_min)):
-                    log.error(f'kustomize v{version} is too old. Setup requires v{major_min}.{minor_min}+')
+                if not (major_min <= major <= major_max) and (minor_min <= minor <= minor_max):
+                    log.error(f'kustomize v{version} found. Requires v{major_min}.{minor_min} to v{major_max}.{minor_max}')
                     return False
                 else:
                     log.info(f'kustomize v{version} found.')
@@ -216,9 +218,9 @@ class DependenciesValidator():
     def validate_k8s_version(self):
         kf_version = self.versions.get('KUBEFLOW_RELEASE_VERSION')
         major_min = self.versions.get('KUBEFLOW_MIN_K8S_VERSION_MAJOR')
-        major_max = self.versions.get('KUBEFLOW_MAX_K8S_VERSION_MAJOR')
-        minor_min = self.versions.get('KUBEFLOW_MIN_K8S_VERSION_MINOR')
-        minor_max = self.versions.get('KUBEFLOW_MAX_K8S_VERSION_MINOR')
+        major_max = self.versions.get('KUBEFLOW_MAX_K8S_VERSION_MAJOR', '99')
+        minor_min = self.versions.get('KUBEFLOW_MIN_K8S_VERSION_MINOR',)
+        minor_max = self.versions.get('KUBEFLOW_MAX_K8S_VERSION_MINOR', '99')
         log.info(f'Validating Kubernetes server version for KubeFlow')
         log.info(f'KubeFlow {kf_version} requires Kubernetes server v{major_min}.{minor_min} to v{major_max}.{minor_max}')
         cmd = 'kubectl version --short'

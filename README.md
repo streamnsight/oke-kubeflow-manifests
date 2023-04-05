@@ -1,22 +1,23 @@
 # KubeFlow distribution for Oracle Kubernetes Engine (OKE)
 
-**This release is for KubeFlow v1.6**
+**This release is for KubeFlow v1.7.0**
 
 ## Requirements
 
 To deploy, you need:
 
 - OCI Command Line Interface v3.5+
-- kubectl 1.22+
-- kustomize v3.7+ (support for Components)
-- A Kubernetes cluster v1.22+
+- kubectl 1.23 - 1.25
+- kustomize v5+ (support for SortBy)
+- A Kubernetes cluster v1.23 - 1.25
+- Kubernetes Node image using Oracle Linux 7.9 (NOT 8.x)
 
 ## Setup
 
 !!! First, clone the repository and select the latest release branch for the KubeFlow release you wish to use.
 
 ```bash
-git clone --branch release/kf1.6 https://github.com/streamnsight/oke-kubeflow-manifests.git
+git clone --branch release/kf1.7 https://github.com/streamnsight/oke-kubeflow-manifests.git
 ```
 
 - Run the CLI config:
