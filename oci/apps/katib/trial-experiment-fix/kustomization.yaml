@@ -3,5 +3,5 @@ kind: Component
 
 # This is a bug fix. 
 # It disabled istio sidecar injection on the Katib experiment pods.
-patchesStrategicMerge:
-- trial-templates.ConfigMap.yaml
+patches:
+- path: trial-templates.ConfigMap.yaml

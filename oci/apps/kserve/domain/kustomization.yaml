@@ -2,5 +2,5 @@ apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
 # Configure KServe domain to point to the DOMAIN_NAME (instead of example.com)
-patchesStrategicMerge:
-- "config-domain.yaml"
+patches:
+- path: config-domain.yaml

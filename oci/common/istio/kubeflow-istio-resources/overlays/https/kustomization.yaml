@@ -8,5 +8,5 @@ resources:
 - kubeflow-gw.Certificate.yaml
 - istio-ns.Issuer.yaml
 
-patchesStrategicMerge:
-- patches/kubeflow.Gateway.yaml
+patches:
+- path: patches/kubeflow.Gateway.yaml

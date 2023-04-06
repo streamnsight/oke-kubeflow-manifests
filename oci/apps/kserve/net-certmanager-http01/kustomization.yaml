@@ -9,6 +9,6 @@ components:
 
 # config-network defining the proper domain format used by KServe,
 # enable autoTLS and HTTP redirect to HTTPS
-patchesStrategicMerge:
-- "config-certmanager.ConfigMap.yaml"
-- "config-network.yaml"
+patches:
+- path: config-certmanager.ConfigMap.yaml
+- path: config-network.yaml

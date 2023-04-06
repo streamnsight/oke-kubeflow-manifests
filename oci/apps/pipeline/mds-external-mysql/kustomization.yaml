@@ -4,31 +4,53 @@ kind: Component
 # disable local MySQL and create service to External Name pointing 
 # to the FQDN of the managed MySQL database
 # also create new secret for MySQL access
-patchesStrategicMerge:
-- patches/disable-local-mysql.yaml
-- mysql.Service.yaml
 
 patches:
+- target:
+    kind: PersistentVolumeClaim
+    name: mysql-pv-claim
+  patch: |-
+    kind: PersistentVolumeClaim
+    metadata:
+      name: mysql-pv-claim
+    $patch: delete
+- target:
+    kind: Deployment
+    name: mysql
+  patch: |-
+    kind: Deployment
+    metadata:
+      name: mysql
+    $patch: delete
+- target:
+    kind: ServiceAccount
+    name: mysql
+  patch: |-
+    kind: ServiceAccount
+    metadata:
+      name: mysql
+    $patch: delete
+- path: mysql.Service.yaml
 - patch: |-
     - op: remove
       path: "/spec/selector"
   target:
     kind: Service
-    namespace: kubeflow
     name: mysql
+    namespace: kubeflow
 - patch: |-
     - op: remove
       path: "/spec/ports"
   target:
     kind: Service
-    namespace: kubeflow
     name: mysql
+    namespace: kubeflow
 
 secretGenerator:
-- name: mysql-secret
-  behavior: replace
+- behavior: replace
   envs:
   - mysql.env
+  name: mysql-secret
 
 generatorOptions:
   disableNameSuffixHash: true

@@ -15,5 +15,5 @@ generatorOptions:
   disableNameSuffixHash: true
   
 # Deployment is patched to add the new ConfigMap
-patchesStrategicMerge:
-- patches/dex.Deployment.yaml
+patches:
+- path: patches/dex.Deployment.yaml

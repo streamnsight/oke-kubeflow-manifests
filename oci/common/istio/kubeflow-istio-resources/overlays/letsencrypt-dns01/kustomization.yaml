@@ -9,5 +9,5 @@ resources:
 - letsencrypt.ClusterIssuer.yaml
 
 # patch the Gateway with the TLS certificate info
-patchesStrategicMerge:
-- patches/kubeflow.Gateway.yaml
+patches:
+- path: patches/kubeflow.Gateway.yaml

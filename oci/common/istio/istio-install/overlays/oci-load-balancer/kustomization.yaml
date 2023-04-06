@@ -3,5 +3,5 @@ kind: Component
 
 # patches the KubeFlow service to make it a Load Balancer type, 
 # setting the annotations to provision a flex load balancer with 10-400MBs bandwidth
-patchesStrategicMerge:
-- patches/istio-ingressgateway.Service.yaml
+patches:
+- path: patches/istio-ingressgateway.Service.yaml

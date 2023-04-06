@@ -6,8 +6,48 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
-patchesStrategicMerge:
 # set external DB credentials on Katib and uses an init container to create the database if it does not exist
-- patches/katib-db-manager.Deployment.yaml
 # Remove the original mysql deployment 
-- patches/remove-mysql-resources.yaml
+patches:
+- path: patches/katib-db-manager.Deployment.yaml
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: katib-mysql
+      namespace: kubeflow
+    $patch: delete
+  target:
+    kind: Deployment
+    name: katib-mysql
+    namespace: kubeflow
+- patch: |-
+    kind: Secret
+    metadata:
+      name: katib-mysql-secrets
+      namespace: kubeflow
+    $patch: delete
+  target:
+    kind: Secret
+    name: katib-mysql-secrets
+    namespace: kubeflow
+- patch: |-
+    kind: PersistentVolumeClaim
+    metadata:
+      name: katib-mysql
+      namespace: kubeflow
+    $patch: delete
+  target:
+    kind: PersistentVolumeClaim
+    name: katib-mysql
+    namespace: kubeflow
+- patch: |-
+    kind: Service
+    metadata:
+      name: katib-mysql
+      namespace: kubeflow
+    $patch: delete
+  target:
+    kind: Service
+    name: katib-mysql
+    namespace: kubeflow

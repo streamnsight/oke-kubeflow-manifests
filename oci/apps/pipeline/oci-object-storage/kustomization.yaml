@@ -34,7 +34,7 @@ generatorOptions:
 # Also note that the last official version of Minio to support gateway mode does not support 
 # custom regions, so only the home region can be used.
 # patched version is being worked on.
-patchesStrategicMerge:
-- patches/ml-pipeline-ui.Deployment.yaml
-- patches/ml-pipeline.Deployment.yaml
-- patches/minio.Deployment.yaml
+patches:
+- path: patches/ml-pipeline-ui.Deployment.yaml
+- path: patches/ml-pipeline.Deployment.yaml
+- path: patches/minio.Deployment.yaml

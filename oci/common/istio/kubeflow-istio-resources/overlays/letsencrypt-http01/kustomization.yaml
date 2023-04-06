@@ -5,5 +5,5 @@ resources:
 - kubeflow-gw.Certificate.yaml
 - letsencrypt.ClusterIssuer.yaml
 
-patchesStrategicMerge:
-- patches/kubeflow.Gateway.yaml
+patches:
+- path: patches/kubeflow.Gateway.yaml

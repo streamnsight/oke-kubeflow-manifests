@@ -9,5 +9,5 @@ resources:
 
 # config-network defining the proper domain format used by KServe,
 # enable autoTLS and HTTP redirect to HTTPS
-patchesStrategicMerge:
-- "config-network.yaml"
+patches:
+- path: config-network.yaml
