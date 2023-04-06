@@ -140,6 +140,9 @@ def run_shell_cmd(cmd, shell=False, verbose=True):
         line = p.stdout.readline()
         log.info(line.decode('utf-8').rstrip())
     log.debug(f'return code: {p.returncode}')
+    if p.returncode != 0:
+        for line in p.stderr.readlines():
+            log.error(line.decode('utf-8').rstrip())
     return p.returncode
 
 
@@ -396,9 +399,12 @@ class ManifestsManager():
         cwd = os.getcwd()
         overlay_path = os.path.join(cwd, 'deployments', 'overlays')
         ready = False
-        while not ready:
+        error = False
+        retry = 0
+        while (not ready) and (retry < 5):
             try:
                 log.info(f'Generating manifests and deploying. This may take a few minutes...')
+                log.debug(f'retry: {retry}')
                 cmd = f'kustomize build {overlay_path}'.split()
                 cmd2 = 'kubectl apply -f -'.split()
                 log.debug(cmd)
@@ -408,11 +414,28 @@ class ManifestsManager():
                 while p2.poll() is None:
                     line = p2.stdout.readline()
                     log.info(line.decode('utf-8').rstrip())
-                retcode = p.poll()
+                retcode = p2.poll()
                 if retcode == 0:
                     ready = True
+                else:
+                    retry += 1
+                    err = p.stderr.readlines()
+                    for line in err:
+                        line = line.decode('utf-8').rstrip()
+                        if 'Error: ' in line:
+                            error = True
+                            retry = 5
+                            log.error(line)
+                        else:
+                            log.warning(line)
+                log.debug(f'return code: {retcode}')
             except Exception as e:
+                retry = 5
+                error = True
                 log.error(e)
+                exit(1)
+        if error:
+            exit(1)
 
 
 class AddOnManager():
