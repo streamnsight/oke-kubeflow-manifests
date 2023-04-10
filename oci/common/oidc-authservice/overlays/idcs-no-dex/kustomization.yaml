@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+  
+# add the environment variables overrides for use of IDCS with authservice
+patches:
+- patch: |-
+    - op: add
+      path: "/spec/template/spec/containers/0/envFrom/-"
+      value:
+        configMapRef:
+          name: oidc-authservice-parameters-idcs
+  target:
+    kind: StatefulSet
+    namespace: istio-system
+    name: authservice
+
+configMapGenerator:
+- name: oidc-authservice-parameters-idcs
+  namespace: istio-system
+  envs:
+  - params.env
+
+generatorOptions:
+  disableNameSuffixHash: true

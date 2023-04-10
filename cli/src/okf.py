@@ -102,6 +102,11 @@ add_on_variables = {
         'OCI_KUBEFLOW_IDCS_CLIENT_ID',
         'OCI_KUBEFLOW_IDCS_CLIENT_SECRET'
     ],
+    'idcs-no-dex': [
+        'OCI_KUBEFLOW_IDCS_URL',
+        'OCI_KUBEFLOW_IDCS_CLIENT_ID',
+        'OCI_KUBEFLOW_IDCS_CLIENT_SECRET'
+    ],
     'external-mysql': [
         'OCI_KUBEFLOW_MYSQL_USER',
         'OCI_KUBEFLOW_MYSQL_PASSWORD',
@@ -428,7 +433,16 @@ class ManifestsManager():
                             log.error(line)
                         else:
                             log.warning(line)
-                log.debug(f'return code: {retcode}')
+                    err = p2.stderr.readlines()
+                    for line in err:
+                        line = line.decode('utf-8').rstrip()
+                        if 'Error: ' in line:
+                            error = True
+                            retry = 5
+                            log.error(line)
+                        else:
+                            log.warning(line)
+                log.info(f'return code: {retcode} retry: {retry}')
             except Exception as e:
                 retry = 5
                 error = True
@@ -490,6 +504,10 @@ class AddOnManager():
                 deferred = self.setup_idcs()
                 if deferred:
                     self.deferred_tasks.append((self.setup_idcs, {}))
+            elif add_on == 'idcs-no-dex':
+                deferred = self.setup_idcs_no_dex()
+                if deferred:
+                    self.deferred_tasks.append((self.setup_idcs_no_dex, {}))
             elif add_on == 'letsencrypt-http01':
                 self.setup_letsencrypt_http01()
             elif add_on == 'letsencrypt-dns01':
@@ -532,6 +550,31 @@ class AddOnManager():
             env['OCI_KUBEFLOW_ISSUER'] = f"https://{issuer}/dex"
             ManifestsManager.render_template(env, 'oci/common/dex/overlays/idcs/config.tmpl.yaml')
             ManifestsManager.render_template(env, 'oci/common/oidc-authservice/overlays/idcs/params.tmpl.env')
+            return False
+
+    def setup_idcs_no_dex(self):
+        domain_name = self.env_manager.env.get('OCI_KUBEFLOW_DOMAIN_NAME', '')
+        issuer = ''
+        if domain_name == '':
+            lb_ip = InfrastructureManager.get_lb_ip()
+            if lb_ip == '':
+                log.warning('Without setting up a domain name, IDCS can only be configured with the load balancer IP adress,')
+                log.warning('however the IP is only available after deployment, so this process will be deferred')
+            else:
+                log.debug(f"Load Balancer IP: {lb_ip}")
+            issuer = lb_ip
+        else:
+            issuer = domain_name
+        env = self.env_manager.env
+        if issuer == '':
+            issuer = 'dex.auth.svc.cluster.local:5556'
+            env['OCI_KUBEFLOW_ISSUER'] = f"http://{issuer}/authservice"
+            ManifestsManager.render_template(env, 'oci/common/oidc-authservice/overlays/idcs-no-dex/params.tmpl.env')
+            return True # defer this action
+        else:
+
+            env['OCI_KUBEFLOW_ISSUER'] = f"https://{issuer}/authservice"
+            ManifestsManager.render_template(env, 'oci/common/oidc-authservice/overlays/idcs-no-dex/params.tmpl.env')
             return False
 
     def setup_letsencrypt_http01(self):
@@ -609,6 +652,7 @@ class InfrastructureManager():
             log.info(f'DNS setup: set A record with load balancer IP {lb_ip} for {domain_name}')
             # Set the A record pointing to the Load Balancer IP
             cmd = f'oci dns record rrset update --force --domain {domain_name} --zone-name-or-id {domain_name} --rtype "A" --items \'[{{"domain":"{domain_name}", "rdata":"{lb_ip}", "rtype": "A", "ttl":300}}]\''
+            log.info(cmd)
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
             log.error('Unable to set load balancer IP on DNS. You may not have permission. Please try to set it up manually.')
@@ -617,6 +661,7 @@ class InfrastructureManager():
             log.info(f'DNS setup: set CNAME record for wildcard sub-domain *.{domain_name}')
             # Set the CNAME record pointing wildcard subdomains to the root domain
             cmd = f'oci dns record rrset update --force --domain "*.{domain_name}" --zone-name-or-id {domain_name} --rtype "CNAME" --items \'[{{"domain": "*.{domain_name}", "rdata": "{domain_name}", "rtype": "CNAME", "ttl":300}}]\''
+            log.info(cmd)
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
             log.error('Unable to set CNAME record on DNS. You may not have permission. Please try to set it up manually.')
@@ -626,7 +671,7 @@ class InfrastructureManager():
     def get_dns_nameservers(cls, domain_name):
         try:
             cmd = f'oci dns zone get --zone-name-or-id {domain_name}'
-            subprocess.check_output(cmd, shell=True)
+            run_shell_cmd(cmd)
         except subprocess.CalledProcessError:
             log.error('Unable to get DNS Zone nameserver list. You may not have permission. Please try to set it up manually.')
             exit(1)
@@ -930,7 +975,6 @@ Use -o <output file | folder> or use 'okf deploy' to build and deploy without in
             ManifestsManager.kustomize_manifests(output_dest)
         return cfg
 
-
     def deploy(self, args):
         log.debug(args)
         cfg = self.build(args)
@@ -945,13 +989,13 @@ Use -o <output file | folder> or use 'okf deploy' to build and deploy without in
         log.debug(f'calling deferred tasks {cfg.deferred_tasks}')
         for func, func_args in cfg.addon_manager.deferred_tasks:
             log.debug(f"calling {func} with {func_args}")
-            func(*func_args)
+            func(**func_args)
         log.debug(args.no_restart)
         if not args.no_restart:
             InfrastructureManager.rollout_restart()
         for func, func_args in cfg.addon_manager.final_tasks:
             log.debug(f"calling {func} with {func_args}")
-            func(*func_args)
+            func(**func_args)
 
     def user(self, args):
         log.debug(args)

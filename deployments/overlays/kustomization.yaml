@@ -29,6 +29,9 @@ components:
 # IDCS integration
 - ../add-ons/idcs
 
+# direct IDCS currently fails due to an issue with the revoke API endpoint in IDCS.
+# - ../add-ons/idcs-no-dex
+
 # Managed MySQL service integration
 - ../add-ons/external-mysql
 
