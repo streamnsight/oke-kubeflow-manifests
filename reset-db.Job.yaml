@@ -23,7 +23,7 @@ spec:
         - -h 
         - $(DBCONFIG_HOST_NAME) 
         - -e 
-        - "drop database mlpipeline; drop database metadb; drop database cachedb;"
+        - "drop database if exists mlpipeline; drop database if exists metadb; drop database if exists cachedb; create database if not exists mlpipeline;create database if not exists metadb; create database if not exists cachedb;"
         env:
         - name: DBCONFIG_USER
           valueFrom:
